@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+.git
+.superpowers
+docs
+*.sqlite
+*.sqlite3
+*.sqlite-*
+data

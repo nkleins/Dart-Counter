@@ -1,0 +1,6 @@
+:root {
+  --bg: #12151c; --amber: #f5b544; --green: #46d38a; --red: #f2645f;
+  --text: #e7ebf2; --muted: #8a94a6; --card: #1a202b; --border: #272f3d;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }

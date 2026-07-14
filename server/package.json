@@ -1,0 +1,26 @@
+{
+  "name": "dart-counter-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "^9.1.0",
+    "@fastify/static": "^7.0.0",
+    "@fastify/websocket": "^10.0.0",
+    "fastify": "^4.28.0",
+    "nanoid": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
