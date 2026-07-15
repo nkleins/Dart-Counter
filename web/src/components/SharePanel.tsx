@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 
-export function SharePanel({ slug, onExtend }: { slug: string; expiresAt: number; onExtend: (d: '1d' | '1w' | '1M') => void }) {
+export function SharePanel({ slug }: { slug: string }) {
   const url = `${location.origin}/g/${slug}`;
   const [qr, setQr] = useState('');
   const [copied, setCopied] = useState(false);
@@ -15,13 +15,6 @@ export function SharePanel({ slug, onExtend }: { slug: string; expiresAt: number
         <button onClick={copy} style={{ background: copied ? 'var(--green)' : 'var(--amber)', color: '#221803', border: 'none', borderRadius: 11, padding: '0 16px', fontWeight: 800 }}>{copied ? 'Kopiert ✓' : 'Kopieren'}</button>
       </div>
       {qr && <img src={qr} alt="QR-Code" style={{ width: 140, height: 140, borderRadius: 14, background: '#fff', padding: 8 }} />}
-      <div style={{ display: 'flex', gap: 7, justifyContent: 'center', marginTop: 16 }}>
-        {(['1d', '1w', '1M'] as const).map((d) => (
-          <button key={d} onClick={() => onExtend(d)} style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 9, padding: '8px 12px', fontWeight: 700 }}>
-            +{d === '1d' ? '1 Tag' : d === '1w' ? '1 Woche' : '1 Monat'}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

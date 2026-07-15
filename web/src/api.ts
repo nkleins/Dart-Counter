@@ -4,7 +4,10 @@ const BASE = import.meta.env.VITE_API_URL ?? '';
 
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
+    method: 'POST',
+    // Ohne Body auch keinen JSON-Content-Type senden – sonst lehnt Fastify den
+    // leeren Body mit 400 (FST_ERR_CTP_EMPTY_JSON_BODY) ab (z. B. beim Undo).
+    headers: body === undefined ? undefined : { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Request fehlgeschlagen: ${res.status}`);

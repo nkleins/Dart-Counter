@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { DB } from '../db.js';
 import { createGame, getGameBySlug, addPlayer, listPlayers, listThrows, countActiveGames, type GameRow, type PlayerRow } from '../repo.js';
 import { computeGameState } from '../engine/index.js';
+import { groupTurns } from '../engine/turns.js';
 import type { PlayerInput, PlayerDart, X01InOut } from '../engine/types.js';
 
 const GAME_TYPES = ['x01', 'cricket', 'aroundTheClock'] as const;
@@ -35,7 +36,7 @@ export interface GameView {
   createdAt: number; expiresAt: number;
   players: { id: string; name: string; order: number; joinedAtRound: number; catchUp: string }[];
   state: unknown;
-  history: { seq: number; playerId: string; segment: number; multiplier: number }[];
+  history: { seq: number; playerId: string; segment: number; multiplier: number; round: number; dartNo: number }[];
 }
 
 export function buildGameView(db: DB, game: GameRow): GameView {
@@ -44,10 +45,23 @@ export function buildGameView(db: DB, game: GameRow): GameView {
   const engineIn: PlayerInput[] = players.map((p) => ({ id: p.id, name: p.name, order: p.order, firstTurnDarts: firstTurnDartsFor(p) }));
   const darts: PlayerDart[] = history.map((e) => ({ playerId: e.playerId, segment: e.segment, multiplier: e.multiplier }));
   const result = computeGameState(game.gameType, game.options, engineIn, darts);
+
+  // Runde + Wurfnummer (1–3) je Wurf für die Verlaufsanzeige herleiten.
+  const firstTurnDarts = new Map<string, number>();
+  for (const p of players) { const f = firstTurnDartsFor(p); if (f) firstTurnDarts.set(p.id, f); }
+  const turnMeta: { round: number; dartNo: number }[] = [];
+  const roundCount = new Map<string, number>();
+  for (const turn of groupTurns(darts, firstTurnDarts)) {
+    const round = (roundCount.get(turn.playerId) ?? 0) + 1;
+    roundCount.set(turn.playerId, round);
+    turn.darts.forEach((_, i) => turnMeta.push({ round, dartNo: i + 1 }));
+  }
+  const historyView = history.map((e, i) => ({ ...e, round: turnMeta[i]?.round ?? 1, dartNo: turnMeta[i]?.dartNo ?? 1 }));
+
   return {
     slug: game.slug, gameType: game.gameType, options: game.options, status: game.status,
     createdAt: game.createdAt, expiresAt: game.expiresAt,
-    players, state: result.state, history,
+    players, state: result.state, history: historyView,
   };
 }
 

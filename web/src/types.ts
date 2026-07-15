@@ -19,5 +19,5 @@ export interface GameView {
   createdAt: number; expiresAt: number;
   players: PlayerMeta[];
   state: AnyState;
-  history: { seq: number; playerId: string; segment: number; multiplier: number }[];
+  history: { seq: number; playerId: string; segment: number; multiplier: number; round: number; dartNo: number }[];
 }

@@ -12,7 +12,7 @@ import type { PlayerMeta, X01State, CricketState, AtcState } from '../types.js';
 
 export function GamePage() {
   const { slug = '' } = useParams();
-  const { view, undo, throwDart, extend } = useGame(slug);
+  const { view, undo, throwDart, join, extend } = useGame(slug);
   const [tab, setTab] = useState<'board' | 'history'>('board');
   const [showWin, setShowWin] = useState(true);
 
@@ -26,16 +26,16 @@ export function GamePage() {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <button onClick={() => setTab('board')} style={{ flex: 1, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: tab === 'board' ? 'var(--card)' : 'transparent', color: 'var(--text)' }}>Board</button>
-        <button onClick={() => setTab('history')} style={{ flex: 1, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: tab === 'history' ? 'var(--card)' : 'transparent', color: 'var(--text)' }}>Verlauf</button>
+        <button onClick={() => setTab('history')} style={{ flex: 1, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: tab === 'history' ? 'var(--card)' : 'transparent', color: 'var(--text)' }}>Verlauf &amp; Settings</button>
       </div>
 
-      {tab === 'history' ? <HistoryTab view={view} /> : (
+      {tab === 'history' ? <HistoryTab view={view} onJoin={join} onExtend={extend} /> : (
         view.gameType === 'x01' ? <X01Board state={view.state as X01State} players={view.players} onThrow={throwDart} />
         : view.gameType === 'cricket' ? <CricketBoard state={view.state as CricketState} players={view.players} onThrow={throwDart} />
         : <AtcBoard state={view.state as AtcState} players={view.players} onThrow={throwDart} />
       )}
 
-      {view.status === 'lobby' && <SharePanel slug={view.slug} expiresAt={view.expiresAt} onExtend={extend} />}
+      {view.status === 'lobby' && <SharePanel slug={view.slug} />}
       {view.state.finished && view.state.winnerId && showWin && (
         <WinPopup winnerName={view.players.find((p) => p.id === view.state.winnerId)?.name ?? '—'} onUndo={() => { setShowWin(true); undo(); }} onClose={() => setShowWin(false)} />
       )}
