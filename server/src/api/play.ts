@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { DB } from '../db.js';
 import {
   getGameBySlug, addPlayer, listPlayers, listThrows, appendThrow, undoLastThrow, setStatus, extendGame, resetGame,
+  countGamesExpiringAfter,
 } from '../repo.js';
 import { computeGameState } from '../engine/index.js';
 import { buildGameView, toEngineInput, validGameConfig, GAME_TYPES } from './games.js';
@@ -11,7 +12,11 @@ function computeCurrent(db: DB, gameId: number, gameType: 'x01' | 'cricket' | 'a
   return computeGameState(gameType, options, engineIn, darts);
 }
 
-export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug: string) => void): void {
+// Ab dieser Rest-Laufzeit gilt ein Spiel als „monatlich verlängert" (mehr als eine
+// Wochen-Verlängerung übrig). Trennt +1 Monat sauber von +1 Tag/+1 Woche.
+const LONG_LIVED_MS = 14 * 86_400_000;
+
+export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug: string) => void, now: () => number = () => Date.now()): void {
   app.post('/api/games/:slug/players', async (req, reply) => {
     const { slug } = req.params as { slug: string };
     const game = getGameBySlug(db, slug);
@@ -87,6 +92,16 @@ export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug
     const map: Record<string, number> = { '1d': 86_400_000, '1w': 7 * 86_400_000, '1M': 30 * 86_400_000 };
     const addMs = map[body?.duration ?? ''];
     if (!addMs) return reply.code(400).send({ error: 'ungültige Dauer' });
+
+    // Nur begrenzt viele Spiele dürfen gleichzeitig eine Monats-Laufzeit haben.
+    // Ein bereits langlebiges Spiel darf sich weiter verlängern (es kommt keins hinzu).
+    if (body.duration === '1M') {
+      const alreadyLong = game.expiresAt > now() + LONG_LIVED_MS;
+      const maxMonthly = Number(process.env.MAX_MONTHLY_GAMES ?? 5);
+      if (!alreadyLong && countGamesExpiringAfter(db, now() + LONG_LIVED_MS) >= maxMonthly) {
+        return reply.code(429).send({ error: `Monats-Verlängerung ausgelastet (max. ${maxMonthly} Spiele). Bitte +1 Woche wählen.` });
+      }
+    }
     extendGame(db, game.id, addMs);
     onChange(slug);
     return reply.send(buildGameView(db, getGameBySlug(db, slug)!));

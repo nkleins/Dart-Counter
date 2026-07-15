@@ -69,6 +69,36 @@ describe('API: Spielen', () => {
     await app.close();
   });
 
+  it('begrenzt die Monats-Verlängerung auf MAX_MONTHLY_GAMES', async () => {
+    const prev = process.env.MAX_MONTHLY_GAMES;
+    process.env.MAX_MONTHLY_GAMES = '2';
+    try {
+      const now = () => 1_700_000_000_000;
+      const app = buildApp(openDb(':memory:'), now);
+      const mkSlug = async () => (await app.inject({
+        method: 'POST', url: '/api/games',
+        payload: { gameType: 'x01', options: { start: 501, in: 'straight', out: 'straight' }, players: ['A'] },
+      })).json().slug as string;
+      const extend = (slug: string, duration: string) =>
+        app.inject({ method: 'POST', url: `/api/games/${slug}/extend`, payload: { duration } });
+
+      const a = await mkSlug();
+      const b = await mkSlug();
+      const c = await mkSlug();
+      expect((await extend(a, '1M')).statusCode).toBe(200);
+      expect((await extend(b, '1M')).statusCode).toBe(200);
+      // Limit (2) erreicht -> drittes Monats-Spiel abgelehnt
+      expect((await extend(c, '1M')).statusCode).toBe(429);
+      // +1 Woche bleibt erlaubt und zählt nicht als langlebig
+      expect((await extend(c, '1w')).statusCode).toBe(200);
+      // bereits langlebiges Spiel darf sich weiter verlängern
+      expect((await extend(a, '1M')).statusCode).toBe(200);
+      await app.close();
+    } finally {
+      if (prev === undefined) delete process.env.MAX_MONTHLY_GAMES; else process.env.MAX_MONTHLY_GAMES = prev;
+    }
+  });
+
   it('Werfen im beendeten Spiel -> 409', async () => {
     const app = buildApp(openDb(':memory:'));
     const create = await app.inject({

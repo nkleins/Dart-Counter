@@ -129,3 +129,9 @@ export function countActiveGames(db: DB, now: number): number {
   const row = db.prepare('SELECT COUNT(*) AS n FROM games WHERE expires_at > ?').get(now) as { n: number };
   return row.n;
 }
+
+/** Anzahl „langlebiger" Spiele: solche, deren Ablauf weiter als `ts` in der Zukunft liegt. */
+export function countGamesExpiringAfter(db: DB, ts: number): number {
+  const row = db.prepare('SELECT COUNT(*) AS n FROM games WHERE expires_at > ?').get(ts) as { n: number };
+  return row.n;
+}

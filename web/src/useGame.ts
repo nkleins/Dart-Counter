@@ -31,7 +31,14 @@ export function useGame(slug: string) {
   const throwDart = useCallback(async (dart: Dart) => { setView(await api.throwDart(slug, dart)); }, [slug]);
   const undo = useCallback(async () => { setView(await api.undo(slug)); }, [slug]);
   const join = useCallback(async (input: { name: string; catchUp: 'catchUp' | 'handicap' }) => { await api.joinGame(slug, input); }, [slug]);
-  const extend = useCallback(async (duration: '1d' | '1w' | '1M') => { setView(await api.extendGame(slug, duration)); }, [slug]);
+  const extend = useCallback(async (duration: '1d' | '1w' | '1M') => {
+    try {
+      setView(await api.extendGame(slug, duration));
+    } catch {
+      // Häufigster Fall: Monats-Verlängerung ist ausgelastet (Server 429).
+      alert('Verlängerung nicht möglich – die Monats-Verlängerung ist gerade ausgelastet. Bitte +1 Woche wählen.');
+    }
+  }, [slug]);
   const reset = useCallback(async (change?: { gameType: GameType; options: unknown }) => { setView(await api.resetGame(slug, change)); }, [slug]);
 
   return { view, throwDart, undo, join, extend, reset };

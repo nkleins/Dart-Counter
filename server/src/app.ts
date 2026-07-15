@@ -39,7 +39,7 @@ export function buildApp(
   });
 
   registerGameRoutes(app, db, now, maxActive);
-  registerPlayRoutes(app, db, onChange);
+  registerPlayRoutes(app, db, onChange, now);
 
   if (opts.staticDir) {
     app.register(fastifyStatic, { root: opts.staticDir, wildcard: false });
