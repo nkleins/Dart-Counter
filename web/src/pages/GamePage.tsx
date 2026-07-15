@@ -31,7 +31,7 @@ export function GamePage() {
         <button onClick={() => setTab('history')} style={{ flex: 1, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: tab === 'history' ? 'var(--card)' : 'transparent', color: 'var(--text)' }}>Verlauf &amp; Settings</button>
       </div>
 
-      {tab === 'history' ? <HistoryTab view={view} onJoin={join} onExtend={extend} /> : (
+      {tab === 'history' ? <HistoryTab view={view} onJoin={join} onExtend={extend} onHome={() => nav('/')} /> : (
         view.gameType === 'x01' ? <X01Board state={view.state as X01State} players={view.players} onThrow={throwDart} />
         : view.gameType === 'cricket' ? <CricketBoard state={view.state as CricketState} players={view.players} onThrow={throwDart} />
         : <AtcBoard state={view.state as AtcState} players={view.players} onThrow={throwDart} />

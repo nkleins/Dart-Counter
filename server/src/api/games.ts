@@ -86,9 +86,11 @@ export function registerGameRoutes(app: FastifyInstance, db: DB, now: () => numb
     if (!body?.gameType) return reply.code(400).send({ error: 'gameType fehlt' });
     if (!GAME_TYPES.includes(body.gameType)) return reply.code(400).send({ error: 'ungültiger Spieltyp' });
     if (!validGameConfig(body.gameType, body.options)) return reply.code(400).send({ error: 'ungültige Optionen' });
+    const names = (body.players ?? []).map((n) => n?.trim()).filter((n): n is string => !!n);
+    if (names.length === 0) return reply.code(400).send({ error: 'mindestens ein*e Spieler*in nötig' });
     const game = createGame(db, { gameType: body.gameType, options: body.options ?? {}, now: now() });
-    for (const name of body.players ?? []) {
-      if (name?.trim()) addPlayer(db, game.id, { name: name.trim().slice(0, 14) });
+    for (const name of names) {
+      addPlayer(db, game.id, { name: name.slice(0, 14) });
     }
     return reply.code(201).send({ slug: game.slug });
   });

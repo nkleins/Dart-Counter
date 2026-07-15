@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import type { GameView, PlayerMeta } from '../types.js';
 
-export function HistoryTab({ view, onJoin, onExtend }: {
+export function HistoryTab({ view, onJoin, onExtend, onHome }: {
   view: GameView;
   onJoin: (input: { name: string; catchUp: 'catchUp' | 'handicap' }) => void;
   onExtend: (d: '1d' | '1w' | '1M') => void;
+  onHome: () => void;
 }) {
   const [name, setName] = useState('');
   const [catchUp, setCatchUp] = useState<'catchUp' | 'handicap'>('catchUp');
@@ -62,6 +63,14 @@ export function HistoryTab({ view, onJoin, onExtend }: {
             </button>
           ))}
         </div>
+      </section>
+
+      {/* — Hauptmenü — */}
+      <section style={{ marginBottom: 20 }}>
+        <button onClick={onHome} style={{ ...chip, width: '100%', padding: 12 }}>Zurück zum Hauptmenü</button>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '8px 0 0', textAlign: 'center' }}>
+          Das Spiel bleibt unter diesem Link 24&nbsp;Stunden erhalten – außer du verlängerst es oben.
+        </p>
       </section>
 
       {/* — Verlauf — */}

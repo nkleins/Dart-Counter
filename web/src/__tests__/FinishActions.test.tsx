@@ -4,21 +4,34 @@ import userEvent from '@testing-library/user-event';
 import { FinishActions } from '../components/FinishActions.js';
 
 describe('FinishActions', () => {
-  it('bietet Neustarten, Modus wechseln und Hauptmenü', async () => {
+  it('bietet Neustarten und Hauptmenü', async () => {
     const onRestart = vi.fn();
-    const onChangeMode = vi.fn();
     const onHome = vi.fn();
-    render(<FinishActions onRestart={onRestart} onChangeMode={onChangeMode} onHome={onHome} />);
-
+    render(<FinishActions onRestart={onRestart} onChangeMode={vi.fn()} onHome={onHome} />);
     await userEvent.click(screen.getByRole('button', { name: 'Neustarten' }));
     expect(onRestart).toHaveBeenCalled();
-
     await userEvent.click(screen.getByRole('button', { name: 'Zurück zum Hauptmenü' }));
     expect(onHome).toHaveBeenCalled();
+  });
 
-    // Modus wechseln öffnet die Auswahl, dann Cricket wählen
+  it('Modus wechseln mit Sub-Optionen (x01 301 / master out)', async () => {
+    const onChangeMode = vi.fn();
+    render(<FinishActions onRestart={vi.fn()} onChangeMode={onChangeMode} onHome={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Modus wechseln' }));
+    // x01 ist Default; Start 301 und Out: master wählen
+    await userEvent.click(screen.getByRole('button', { name: '301' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Out: master' }));
+    await userEvent.click(screen.getByRole('button', { name: /Neues Spiel starten/ }));
+    expect(onChangeMode).toHaveBeenCalledWith('x01', { start: 301, in: 'straight', out: 'master' });
+  });
+
+  it('Modus wechseln zu Cricket Cut-Throat', async () => {
+    const onChangeMode = vi.fn();
+    render(<FinishActions onRestart={vi.fn()} onChangeMode={onChangeMode} onHome={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Modus wechseln' }));
     await userEvent.click(screen.getByRole('button', { name: 'Cricket' }));
-    expect(onChangeMode).toHaveBeenCalledWith('cricket', expect.anything());
+    await userEvent.click(screen.getByRole('button', { name: 'Cut-Throat' }));
+    await userEvent.click(screen.getByRole('button', { name: /Neues Spiel starten/ }));
+    expect(onChangeMode).toHaveBeenCalledWith('cricket', { mode: 'cutthroat', bull: true });
   });
 });

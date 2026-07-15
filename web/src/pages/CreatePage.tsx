@@ -2,17 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { GameType } from '../types.js';
 import { createGame } from '../api.js';
-
-type InOut = 'straight' | 'double' | 'master';
+import { GameOptionsPicker } from '../components/GameOptionsPicker.js';
 
 export function CreatePage() {
   const nav = useNavigate();
   const [gameType, setGameType] = useState<GameType>('x01');
-  const [start, setStart] = useState<301 | 501 | 701>(501);
-  const [inRule, setInRule] = useState<InOut>('straight');
-  const [outRule, setOutRule] = useState<InOut>('double');
-  const [cricketMode, setCricketMode] = useState<'standard' | 'cutthroat'>('standard');
-  const [bull, setBull] = useState(true);
+  const [options, setOptions] = useState<unknown>({ start: 501, in: 'straight', out: 'double' });
   const [players, setPlayers] = useState<string[]>([]);
   const [name, setName] = useState('');
 
@@ -21,56 +16,19 @@ export function CreatePage() {
     if (n) { setPlayers((p) => [...p, n]); setName(''); }
   };
 
-  const buildOptions = (): unknown => {
-    if (gameType === 'x01') return { start, in: inRule, out: outRule };
-    if (gameType === 'cricket') return { mode: cricketMode, bull };
-    return { advanceByMultiplier: true };
-  };
-
   const submit = async () => {
-    const { slug } = await createGame({ gameType, options: buildOptions(), players });
+    if (players.length === 0) return;
+    const { slug } = await createGame({ gameType, options, players });
     nav(`/g/${slug}`);
   };
-
-  const pill = (active: boolean): React.CSSProperties => ({
-    padding: '8px 14px', borderRadius: 9, cursor: 'pointer',
-    background: active ? 'var(--amber)' : 'var(--card)', color: active ? '#221803' : 'var(--text)',
-    border: `1px solid ${active ? 'var(--amber)' : 'var(--border)'}`, fontWeight: 700,
-  });
 
   return (
     <div style={{ maxWidth: 400, margin: '0 auto', padding: 20 }}>
       <h1>Neues Spiel</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
-        {(['x01', 'cricket', 'aroundTheClock'] as GameType[]).map((g) => (
-          <button key={g} style={pill(gameType === g)} onClick={() => setGameType(g)}>
-            {g === 'x01' ? 'x01' : g === 'cricket' ? 'Cricket' : 'Around the Clock'}
-          </button>
-        ))}
+      <div style={{ marginBottom: 20 }}>
+        <GameOptionsPicker onChange={(gt, opts) => { setGameType(gt); setOptions(opts); }} />
       </div>
-
-      {gameType === 'x01' && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', gap: 7, marginBottom: 10 }}>
-            {([301, 501, 701] as const).map((s) => <button key={s} style={pill(start === s)} onClick={() => setStart(s)}>{s}</button>)}
-          </div>
-          <div style={{ display: 'flex', gap: 7, marginBottom: 8 }}>
-            {(['straight', 'double', 'master'] as InOut[]).map((r) => <button key={r} style={pill(inRule === r)} onClick={() => setInRule(r)}>In: {r}</button>)}
-          </div>
-          <div style={{ display: 'flex', gap: 7 }}>
-            {(['straight', 'double', 'master'] as InOut[]).map((r) => <button key={r} style={pill(outRule === r)} onClick={() => setOutRule(r)}>Out: {r}</button>)}
-          </div>
-        </div>
-      )}
-
-      {gameType === 'cricket' && (
-        <div style={{ display: 'flex', gap: 7, marginBottom: 20 }}>
-          <button style={pill(cricketMode === 'standard')} onClick={() => setCricketMode('standard')}>Standard</button>
-          <button style={pill(cricketMode === 'cutthroat')} onClick={() => setCricketMode('cutthroat')}>Cut-Throat</button>
-          <button style={pill(bull)} onClick={() => setBull((b) => !b)}>Bull {bull ? 'an' : 'aus'}</button>
-        </div>
-      )}
 
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 8 }}>
@@ -90,9 +48,14 @@ export function CreatePage() {
         </div>
       </div>
 
-      <button onClick={submit} style={{ width: '100%', background: 'var(--amber)', color: '#221803', border: 'none', borderRadius: 13, padding: 15, fontSize: 15, fontWeight: 800 }}>
+      <button onClick={submit} disabled={players.length === 0}
+        style={{ width: '100%', background: 'var(--amber)', color: '#221803', border: 'none', borderRadius: 13, padding: 15, fontSize: 15, fontWeight: 800,
+          opacity: players.length === 0 ? 0.45 : 1, cursor: players.length === 0 ? 'not-allowed' : 'pointer' }}>
         Spiel erstellen →
       </button>
+      {players.length === 0 && (
+        <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, marginTop: 10 }}>Füge mindestens eine*n Spieler*in hinzu.</p>
+      )}
     </div>
   );
 }

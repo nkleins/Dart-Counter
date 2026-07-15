@@ -52,6 +52,24 @@ describe('API: Spiele', () => {
     expect(res.statusCode).toBe(400);
     await app.close();
   });
+
+  it('ohne Spieler*innen -> 400, kein Spiel wird erstellt', async () => {
+    const db = openDb(':memory:');
+    const app = buildApp(db);
+    const res = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 501, in: 'straight', out: 'double' }, players: [] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(countActiveGames(db, 0)).toBe(0);
+    // auch nur-Leerzeichen-Namen zählen nicht
+    const res2 = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 501, in: 'straight', out: 'double' }, players: ['  '] },
+    });
+    expect(res2.statusCode).toBe(400);
+    await app.close();
+  });
 });
 
 describe('API: globaler Deckel', () => {
