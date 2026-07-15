@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { DB } from '../db.js';
 import {
   getGameBySlug, addPlayer, listPlayers, listThrows, appendThrow, undoLastThrow, setStatus, extendGame, resetGame,
-  countGamesExpiringAfter,
+  removePlayer, countGamesExpiringAfter,
 } from '../repo.js';
 import { computeGameState } from '../engine/index.js';
 import { buildGameView, toEngineInput, validGameConfig, GAME_TYPES } from './games.js';
@@ -28,6 +28,22 @@ export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug
     const player = addPlayer(db, game.id, { name: body.name.trim().slice(0, 14), joinedAtRound, catchUp: body.catchUp ?? 'handicap' });
     onChange(slug);
     return reply.code(201).send({ player });
+  });
+
+  app.delete('/api/games/:slug/players/:playerId', async (req, reply) => {
+    const { slug, playerId } = req.params as { slug: string; playerId: string };
+    const game = getGameBySlug(db, slug);
+    if (!game) return reply.code(404).send({ error: 'nicht gefunden' });
+    const players = listPlayers(db, game.id);
+    if (!players.some((p) => p.id === playerId)) return reply.code(404).send({ error: 'Spieler*in nicht gefunden' });
+    if (players.length <= 1) return reply.code(409).send({ error: 'mindestens ein*e Spieler*in muss bleiben' });
+
+    removePlayer(db, game.id, playerId);
+    // Wie beim Undo: Status aus dem neuen Zustand herleiten (Sieg kann sich ändern).
+    const after = computeCurrent(db, game.id, game.gameType, game.options);
+    setStatus(db, game.id, after.state.finished ? 'finished' : (listThrows(db, game.id).length > 0 ? 'running' : 'lobby'));
+    onChange(slug);
+    return reply.send(buildGameView(db, getGameBySlug(db, slug)!));
   });
 
   app.post('/api/games/:slug/throws', async (req, reply) => {

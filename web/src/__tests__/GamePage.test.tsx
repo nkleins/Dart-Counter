@@ -13,7 +13,7 @@ const view: GameView = {
 };
 
 vi.mock('../useGame.js', () => ({
-  useGame: () => ({ view, throwDart: vi.fn(), undo: vi.fn(), join: vi.fn(), extend: vi.fn(), reset: vi.fn() }),
+  useGame: () => ({ view, throwDart: vi.fn(), undo: vi.fn(), join: vi.fn(), removePlayer: vi.fn(), extend: vi.fn(), reset: vi.fn() }),
 }));
 
 describe('GamePage', () => {

@@ -31,6 +31,11 @@ export async function undo(slug: string): Promise<GameView> {
 export async function joinGame(slug: string, input: { name: string; catchUp: 'catchUp' | 'handicap' }): Promise<{ player: PlayerMeta }> {
   return post(`/api/games/${slug}/players`, input);
 }
+export async function removePlayer(slug: string, playerId: string): Promise<GameView> {
+  const res = await fetch(`${BASE}/api/games/${slug}/players/${playerId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Entfernen fehlgeschlagen: ${res.status}`);
+  return res.json() as Promise<GameView>;
+}
 export async function extendGame(slug: string, duration: '1d' | '1w' | '1M'): Promise<GameView> {
   return post(`/api/games/${slug}/extend`, { duration });
 }

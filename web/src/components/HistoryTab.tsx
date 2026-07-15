@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { GameView, PlayerMeta } from '../types.js';
 
-export function HistoryTab({ view, onJoin, onExtend, onHome }: {
+export function HistoryTab({ view, onJoin, onRemove, onExtend, onHome }: {
   view: GameView;
   onJoin: (input: { name: string; catchUp: 'catchUp' | 'handicap' }) => void;
+  onRemove: (playerId: string) => void;
   onExtend: (d: '1d' | '1w' | '1M') => void;
   onHome: () => void;
 }) {
@@ -25,9 +26,20 @@ export function HistoryTab({ view, onJoin, onExtend, onHome }: {
 
   return (
     <div>
-      {/* — Spieler*in hinzufügen — */}
+      {/* — Spieler*innen — */}
       <section style={{ marginBottom: 20 }}>
-        <h3 style={heading}>Spieler*in hinzufügen</h3>
+        <h3 style={heading}>Spieler*innen</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {view.players.map((p) => (
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px' }}>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+              {view.players.length > 1 && (
+                <button title="Entfernen" onClick={() => { if (confirm(`${p.name} aus dem Spiel entfernen?`)) onRemove(p.id); }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 2 }}>✕</button>
+              )}
+            </div>
+          ))}
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input placeholder="Name…" value={name} maxLength={14}
             onChange={(e) => setName(e.target.value)}

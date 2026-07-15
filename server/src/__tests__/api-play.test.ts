@@ -99,6 +99,44 @@ describe('API: Spielen', () => {
     }
   });
 
+  it('Entfernen einer Person löscht sie inkl. ihrer Würfe und rechnet neu', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const slug = await newGame(app); // Mia, Ben
+    const before = await app.inject({ method: 'POST', url: `/api/games/${slug}/throws`, payload: { segment: 20, multiplier: 3 } });
+    const mia = before.json().players[0];
+    const ben = before.json().players[1];
+
+    const res = await app.inject({ method: 'DELETE', url: `/api/games/${slug}/players/${mia.id}` });
+    expect(res.statusCode).toBe(200);
+    const view = res.json();
+    expect(view.players).toHaveLength(1);
+    expect(view.players[0].id).toBe(ben.id);
+    expect(view.history).toHaveLength(0); // Mias Wurf ist weg
+    expect(view.state.currentPlayerId).toBe(ben.id);
+    await app.close();
+  });
+
+  it('letzte verbleibende Person kann nicht entfernt werden -> 409', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const create = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 501, in: 'straight', out: 'straight' }, players: ['Solo'] },
+    });
+    const slug = create.json().slug;
+    const only = (await app.inject({ method: 'GET', url: `/api/games/${slug}` })).json().players[0];
+    const res = await app.inject({ method: 'DELETE', url: `/api/games/${slug}/players/${only.id}` });
+    expect(res.statusCode).toBe(409);
+    await app.close();
+  });
+
+  it('Entfernen unbekannter Person -> 404', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const slug = await newGame(app);
+    const res = await app.inject({ method: 'DELETE', url: `/api/games/${slug}/players/gibtsnicht` });
+    expect(res.statusCode).toBe(404);
+    await app.close();
+  });
+
   it('Werfen im beendeten Spiel -> 409', async () => {
     const app = buildApp(openDb(':memory:'));
     const create = await app.inject({

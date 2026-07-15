@@ -1,6 +1,7 @@
 import type { PlayerDart, PlayerInput, X01Options } from './types.js';
 import { dartPoints, isDouble, isDoubleOrTriple } from './score.js';
 import { groupTurns, playerOrder, firstTurnDartsMap, publicTurnState } from './turns.js';
+import { suggestCheckout } from './checkout.js';
 
 export interface X01PlayerState {
   playerId: string;
@@ -18,6 +19,7 @@ export interface X01State {
   finished: boolean;
   winnerId: string | null;
   players: X01PlayerState[];
+  checkout: string[] | null; // Vorschlag für den aktuellen Spieler (falls Finish in Reichweite)
 }
 
 export function computeX01State(
@@ -91,5 +93,8 @@ export function computeX01State(
 
   const players_out = order.map((id) => ps.get(id)!);
   const pub = publicTurnState(turns, order, winnerId, lastTurnComplete, firstTurnDarts);
-  return { ...pub, finished: winnerId !== null, winnerId, players: players_out };
+  const cur = pub.currentPlayerId ? ps.get(pub.currentPlayerId) : null;
+  const dartsLeft = pub.dartsThisTurnTotal - pub.dartsThrownThisTurn;
+  const checkout = cur && cur.opened ? suggestCheckout(cur.remaining, dartsLeft, options.out) : null;
+  return { ...pub, finished: winnerId !== null, winnerId, players: players_out, checkout };
 }

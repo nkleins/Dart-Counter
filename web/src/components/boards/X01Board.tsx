@@ -17,7 +17,7 @@ export function X01Board({ state, players, onThrow }: { state: X01State; players
           );
         })}
       </div>
-      <Keypad onThrow={onThrow} />
+      <Keypad onThrow={onThrow} checkout={state.checkout} />
     </div>
   );
 }

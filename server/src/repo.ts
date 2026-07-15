@@ -70,6 +70,17 @@ export function listPlayers(db: DB, gameId: number): PlayerRow[] {
   return rows.map(mapPlayer);
 }
 
+/**
+ * Entfernt eine*n Spieler*in inkl. aller ihrer Würfe. Ohne die Würfe geriete die
+ * Zug-Reihenfolge durcheinander (verwaiste player_id in throw_events). Gibt `true`
+ * zurück, wenn tatsächlich jemand entfernt wurde.
+ */
+export function removePlayer(db: DB, gameId: number, playerId: string): boolean {
+  db.prepare('DELETE FROM throw_events WHERE game_id = ? AND player_id = ?').run(gameId, playerId);
+  const info = db.prepare('DELETE FROM players WHERE game_id = ? AND id = ?').run(gameId, playerId);
+  return Number(info.changes) > 0;
+}
+
 export interface EventRow { seq: number; playerId: string; segment: number; multiplier: number; }
 interface EventDbRow { seq: number; player_id: string; segment: number; multiplier: number; }
 

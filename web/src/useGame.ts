@@ -31,6 +31,10 @@ export function useGame(slug: string) {
   const throwDart = useCallback(async (dart: Dart) => { setView(await api.throwDart(slug, dart)); }, [slug]);
   const undo = useCallback(async () => { setView(await api.undo(slug)); }, [slug]);
   const join = useCallback(async (input: { name: string; catchUp: 'catchUp' | 'handicap' }) => { await api.joinGame(slug, input); }, [slug]);
+  const removePlayer = useCallback(async (playerId: string) => {
+    try { setView(await api.removePlayer(slug, playerId)); }
+    catch { alert('Entfernen nicht möglich – mindestens eine Person muss im Spiel bleiben.'); }
+  }, [slug]);
   const extend = useCallback(async (duration: '1d' | '1w' | '1M') => {
     try {
       setView(await api.extendGame(slug, duration));
@@ -41,5 +45,5 @@ export function useGame(slug: string) {
   }, [slug]);
   const reset = useCallback(async (change?: { gameType: GameType; options: unknown }) => { setView(await api.resetGame(slug, change)); }, [slug]);
 
-  return { view, throwDart, undo, join, extend, reset };
+  return { view, throwDart, undo, join, removePlayer, extend, reset };
 }
