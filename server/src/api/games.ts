@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import type { DB } from '../db.js';
-import { createGame, getGameBySlug, addPlayer, listPlayers, listThrows, countActiveGames, type GameRow, type PlayerRow } from '../repo.js';
+import { createGame, getGameBySlug, addPlayer, listPlayers, listThrows, countActiveGames, type GameRow, type PlayerRow, type EventRow } from '../repo.js';
 import { computeGameState } from '../engine/index.js';
 import { groupTurns } from '../engine/turns.js';
 import type { PlayerInput, PlayerDart, X01InOut } from '../engine/types.js';
 
-const GAME_TYPES = ['x01', 'cricket', 'aroundTheClock'] as const;
+export const GAME_TYPES = ['x01', 'cricket', 'aroundTheClock'] as const;
 const X01_STARTS = [301, 501, 701];
 const X01_IN_OUT: X01InOut[] = ['straight', 'double', 'master'];
 const CRICKET_MODES = ['standard', 'cutthroat'];
@@ -31,6 +31,13 @@ export function firstTurnDartsFor(p: PlayerRow): number | undefined {
   return p.catchUp === 'catchUp' && p.joinedAtRound > 0 ? p.joinedAtRound * 3 : undefined;
 }
 
+/** Übersetzt DB-Zeilen in die flache Engine-Eingabe (Spieler + Wurfliste). */
+export function toEngineInput(players: PlayerRow[], history: EventRow[]): { engineIn: PlayerInput[]; darts: PlayerDart[] } {
+  const engineIn: PlayerInput[] = players.map((p) => ({ id: p.id, name: p.name, order: p.order, firstTurnDarts: firstTurnDartsFor(p) }));
+  const darts: PlayerDart[] = history.map((e) => ({ playerId: e.playerId, segment: e.segment, multiplier: e.multiplier }));
+  return { engineIn, darts };
+}
+
 export interface GameView {
   slug: string; gameType: string; options: unknown; status: string;
   createdAt: number; expiresAt: number;
@@ -42,8 +49,7 @@ export interface GameView {
 export function buildGameView(db: DB, game: GameRow): GameView {
   const players = listPlayers(db, game.id);
   const history = listThrows(db, game.id);
-  const engineIn: PlayerInput[] = players.map((p) => ({ id: p.id, name: p.name, order: p.order, firstTurnDarts: firstTurnDartsFor(p) }));
-  const darts: PlayerDart[] = history.map((e) => ({ playerId: e.playerId, segment: e.segment, multiplier: e.multiplier }));
+  const { engineIn, darts } = toEngineInput(players, history);
   const result = computeGameState(game.gameType, game.options, engineIn, darts);
 
   // Runde + Wurfnummer je Wurf für die Verlaufsanzeige herleiten.

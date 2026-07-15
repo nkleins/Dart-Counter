@@ -17,11 +17,8 @@ export function buildApp(
   const rooms = new Rooms();
 
   const maxActive = Number(process.env.MAX_ACTIVE_GAMES ?? 10_000);
-  app.register(rateLimit, {
-    global: false,
-    max: Number(process.env.CREATE_RATE_MAX ?? 20),
-    timeWindow: '1 hour',
-  });
+  // Nur als Plugin registrieren; das Limit setzt die POST-/api/games-Route selbst.
+  app.register(rateLimit, { global: false });
 
   const onChange = (slug: string): void => {
     const game = getGameBySlug(db, slug);

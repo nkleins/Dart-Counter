@@ -1,9 +1,19 @@
-import type { PlayerDart } from './types.js';
+import type { PlayerDart, PlayerInput } from './types.js';
 
 export interface Turn {
   playerId: string;
   darts: PlayerDart[];
   cap: number;
+}
+
+/** Spieler-IDs in Zug-Reihenfolge (nach `order` sortiert). */
+export function playerOrder(players: PlayerInput[]): string[] {
+  return [...players].sort((a, b) => a.order - b.order).map((p) => p.id);
+}
+
+/** Map der Erst-Zug-Längen (nur Spieler*innen mit abweichender Länge, z. B. Aufholen). */
+export function firstTurnDartsMap(players: PlayerInput[]): Map<string, number> {
+  return new Map(players.filter((p) => p.firstTurnDarts).map((p) => [p.id, p.firstTurnDarts!]));
 }
 
 export function groupTurns(darts: PlayerDart[], firstTurnDarts: Map<string, number> = new Map()): Turn[] {
@@ -66,4 +76,31 @@ export function roundFor(turns: Turn[], order: string[], currentPlayerId: string
     if (t.playerId === currentPlayerId && complete) completed += 1;
   }
   return completed + 1;
+}
+
+/** Runde ohne aktuellen Spieler (Spiel beendet/leer): aus Gesamtzahl der Züge herleiten. */
+function winnerRound(turnCount: number, playerCount: number): number {
+  return Math.max(1, Math.ceil(turnCount / Math.max(1, playerCount)));
+}
+
+/**
+ * Der öffentliche Zug-Teil des Spielzustands (aktueller Spieler, Runde, Darts im Zug) —
+ * identisch für x01, Cricket und Around-the-Clock. Bei Sieg gibt es keinen aktiven
+ * Spieler mehr; die Runde wird dann aus der Gesamtzahl der Züge hergeleitet.
+ */
+export function publicTurnState(
+  turns: Turn[],
+  order: string[],
+  winnerId: string | null,
+  lastTurnComplete: boolean,
+  firstTurnDarts: Map<string, number> = new Map(),
+): { currentPlayerId: string | null; round: number; dartsThrownThisTurn: number; dartsThisTurnTotal: number } {
+  if (winnerId) {
+    return { currentPlayerId: null, round: winnerRound(turns.length, order.length), dartsThrownThisTurn: 0, dartsThisTurnTotal: 0 };
+  }
+  const cursor = turnCursor(turns, order, lastTurnComplete, firstTurnDarts);
+  const round = cursor.currentPlayerId
+    ? roundFor(turns, order, cursor.currentPlayerId, lastTurnComplete)
+    : winnerRound(turns.length, order.length);
+  return { currentPlayerId: cursor.currentPlayerId, round, dartsThrownThisTurn: cursor.dartsThrownThisTurn, dartsThisTurnTotal: cursor.dartsThisTurnTotal };
 }

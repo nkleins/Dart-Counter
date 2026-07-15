@@ -1,5 +1,5 @@
 import type { CricketOptions, PlayerDart, PlayerInput } from './types.js';
-import { groupTurns, turnCursor, roundFor } from './turns.js';
+import { groupTurns, playerOrder, firstTurnDartsMap, publicTurnState } from './turns.js';
 
 export interface CricketPlayerState {
   playerId: string;
@@ -32,12 +32,12 @@ export function computeCricketState(
   darts: PlayerDart[],
 ): CricketState {
   const targets = cricketTargets(options);
-  const order = [...players].sort((a, b) => a.order - b.order).map((p) => p.id);
+  const order = playerOrder(players);
   const ps = new Map<string, CricketPlayerState>(
     players.map((p) => [p.id, { playerId: p.id, marks: {}, score: 0, closedAll: false }]),
   );
 
-  const firstTurnDarts = new Map(players.filter((p) => p.firstTurnDarts).map((p) => [p.id, p.firstTurnDarts!]));
+  const firstTurnDarts = firstTurnDartsMap(players);
   const turns = groupTurns(darts, firstTurnDarts);
   let winnerId: string | null = null;
   let lastTurnComplete = true;
@@ -81,19 +81,10 @@ export function computeCricketState(
   });
   const deadTargets = targets.filter((t) => players_out.every((p) => (p.marks[t] ?? 0) >= 3));
 
-  const cursor = turnCursor(turns, order, lastTurnComplete, firstTurnDarts);
-  const currentPlayerId = winnerId ? null : cursor.currentPlayerId;
-  const dartsThrownThisTurn = winnerId ? 0 : cursor.dartsThrownThisTurn;
-  const dartsThisTurnTotal = winnerId ? 0 : cursor.dartsThisTurnTotal;
-  const round = currentPlayerId
-    ? roundFor(turns, order, currentPlayerId, lastTurnComplete)
-    : Math.max(1, Math.ceil(turns.length / Math.max(1, order.length)));
+  const pub = publicTurnState(turns, order, winnerId, lastTurnComplete, firstTurnDarts);
 
   return {
-    currentPlayerId,
-    round,
-    dartsThrownThisTurn,
-    dartsThisTurnTotal,
+    ...pub,
     finished: winnerId !== null,
     winnerId,
     targets,

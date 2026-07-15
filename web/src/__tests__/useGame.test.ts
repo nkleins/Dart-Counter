@@ -27,8 +27,4 @@ describe('useGame', () => {
     act(() => { FakeWS.last!.onmessage?.({ data: JSON.stringify(view) }); });
     await waitFor(() => expect(result.current.view?.state.currentPlayerId).toBe('a'));
   });
-  it('setzt connected=true bei open', async () => {
-    const { result } = renderHook(() => useGame('s'));
-    await waitFor(() => expect(result.current.connected).toBe(true));
-  });
 });

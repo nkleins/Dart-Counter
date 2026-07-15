@@ -4,15 +4,10 @@ import {
   getGameBySlug, addPlayer, listPlayers, listThrows, appendThrow, undoLastThrow, setStatus, extendGame, resetGame,
 } from '../repo.js';
 import { computeGameState } from '../engine/index.js';
-import type { PlayerInput, PlayerDart } from '../engine/types.js';
-import { buildGameView, firstTurnDartsFor, validGameConfig } from './games.js';
-
-const GAME_TYPES = ['x01', 'cricket', 'aroundTheClock'] as const;
+import { buildGameView, toEngineInput, validGameConfig, GAME_TYPES } from './games.js';
 
 function computeCurrent(db: DB, gameId: number, gameType: 'x01' | 'cricket' | 'aroundTheClock', options: unknown) {
-  const players = listPlayers(db, gameId);
-  const engineIn: PlayerInput[] = players.map((p) => ({ id: p.id, name: p.name, order: p.order, firstTurnDarts: firstTurnDartsFor(p) }));
-  const darts: PlayerDart[] = listThrows(db, gameId).map((e) => ({ playerId: e.playerId, segment: e.segment, multiplier: e.multiplier }));
+  const { engineIn, darts } = toEngineInput(listPlayers(db, gameId), listThrows(db, gameId));
   return computeGameState(gameType, options, engineIn, darts);
 }
 

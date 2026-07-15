@@ -1,6 +1,6 @@
 import type { PlayerDart, PlayerInput, X01Options } from './types.js';
 import { dartPoints, isDouble, isDoubleOrTriple } from './score.js';
-import { groupTurns, turnCursor, roundFor, type Turn } from './turns.js';
+import { groupTurns, playerOrder, firstTurnDartsMap, publicTurnState } from './turns.js';
 
 export interface X01PlayerState {
   playerId: string;
@@ -25,7 +25,7 @@ export function computeX01State(
   players: PlayerInput[],
   darts: PlayerDart[],
 ): X01State {
-  const order = [...players].sort((a, b) => a.order - b.order).map((p) => p.id);
+  const order = playerOrder(players);
   const ps = new Map<string, X01PlayerState>(
     players.map((p) => [p.id, {
       playerId: p.id,
@@ -36,7 +36,7 @@ export function computeX01State(
     }]),
   );
 
-  const firstTurnDarts = new Map(players.filter((p) => p.firstTurnDarts).map((p) => [p.id, p.firstTurnDarts!]));
+  const firstTurnDarts = firstTurnDartsMap(players);
   const turns = groupTurns(darts, firstTurnDarts);
   let winnerId: string | null = null;
   let lastTurnComplete = true;
@@ -89,36 +89,7 @@ export function computeX01State(
     if (i === turns.length - 1) lastTurnComplete = busted || wonThisTurn || turn.darts.length >= turn.cap;
   }
 
-  return assembleState(order, ps, turns, winnerId, lastTurnComplete, firstTurnDarts);
-}
-
-/**
- * Baut aus den Spielerzuständen + der Info, ob der letzte Zug abgeschlossen ist, den
- * öffentlichen X01State (aktueller Spieler, Runde, Darts im Zug). Wird von allen
- * Ausbaustufen von computeX01State genutzt und ändert sich ab hier nicht mehr — nur
- * die Replay-Schleife oben wächst in Task 4/5.
- */
-function assembleState(
-  order: string[],
-  ps: Map<string, X01PlayerState>,
-  turns: Turn[],
-  winnerId: string | null,
-  lastTurnComplete: boolean,
-  firstTurnDarts: Map<string, number>,
-): X01State {
   const players_out = order.map((id) => ps.get(id)!);
-  if (winnerId) {
-    return {
-      currentPlayerId: null,
-      round: Math.max(1, Math.ceil(turns.length / Math.max(1, order.length))),
-      dartsThrownThisTurn: 0,
-      dartsThisTurnTotal: 0,
-      finished: true,
-      winnerId,
-      players: players_out,
-    };
-  }
-  const { currentPlayerId, dartsThrownThisTurn, dartsThisTurnTotal } = turnCursor(turns, order, lastTurnComplete, firstTurnDarts);
-  const round = currentPlayerId ? roundFor(turns, order, currentPlayerId, lastTurnComplete) : 1;
-  return { currentPlayerId, round, dartsThrownThisTurn, dartsThisTurnTotal, finished: false, winnerId: null, players: players_out };
+  const pub = publicTurnState(turns, order, winnerId, lastTurnComplete, firstTurnDarts);
+  return { ...pub, finished: winnerId !== null, winnerId, players: players_out };
 }

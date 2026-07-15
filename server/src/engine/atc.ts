@@ -1,5 +1,5 @@
 import type { AtcOptions, PlayerDart, PlayerInput } from './types.js';
-import { groupTurns, turnCursor, roundFor } from './turns.js';
+import { groupTurns, playerOrder, firstTurnDartsMap, publicTurnState } from './turns.js';
 
 export interface AtcPlayerState {
   playerId: string;
@@ -26,10 +26,10 @@ export function computeAtcState(
   players: PlayerInput[],
   darts: PlayerDart[],
 ): AtcState {
-  const order = [...players].sort((a, b) => a.order - b.order).map((p) => p.id);
+  const order = playerOrder(players);
   const progress = new Map<string, number>(players.map((p) => [p.id, 0]));
 
-  const firstTurnDarts = new Map(players.filter((p) => p.firstTurnDarts).map((p) => [p.id, p.firstTurnDarts!]));
+  const firstTurnDarts = firstTurnDartsMap(players);
   const turns = groupTurns(darts, firstTurnDarts);
   let winnerId: string | null = null;
   let lastTurnComplete = true;
@@ -56,19 +56,6 @@ export function computeAtcState(
     return { playerId: id, progress: prog, target: finished ? null : SEQUENCE[prog]!, finished };
   });
 
-  if (winnerId) {
-    return {
-      currentPlayerId: null,
-      round: Math.max(1, Math.ceil(turns.length / Math.max(1, order.length))),
-      dartsThrownThisTurn: 0,
-      dartsThisTurnTotal: 0,
-      finished: true,
-      winnerId,
-      sequence: SEQUENCE,
-      players: players_out,
-    };
-  }
-  const { currentPlayerId, dartsThrownThisTurn, dartsThisTurnTotal } = turnCursor(turns, order, lastTurnComplete, firstTurnDarts);
-  const round = currentPlayerId ? roundFor(turns, order, currentPlayerId, lastTurnComplete) : 1;
-  return { currentPlayerId, round, dartsThrownThisTurn, dartsThisTurnTotal, finished: false, winnerId: null, sequence: SEQUENCE, players: players_out };
+  const pub = publicTurnState(turns, order, winnerId, lastTurnComplete, firstTurnDarts);
+  return { ...pub, finished: winnerId !== null, winnerId, sequence: SEQUENCE, players: players_out };
 }

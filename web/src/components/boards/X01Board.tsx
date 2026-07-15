@@ -1,6 +1,5 @@
-import type { PlayerMeta, X01State } from '../../types.js';
+import type { Dart, PlayerMeta, X01State } from '../../types.js';
 import { Keypad } from '../Keypad.js';
-import type { Dart } from '../../types.js';
 
 export function X01Board({ state, players, onThrow }: { state: X01State; players: PlayerMeta[]; onThrow: (d: Dart) => void }) {
   const nameOf = (id: string) => players.find((p) => p.id === id)?.name ?? id;

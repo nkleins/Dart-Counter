@@ -25,11 +25,3 @@ export function computeGameState(
       return { gameType, state: computeAtcState(options as AtcOptions, players, darts) };
   }
 }
-
-export function currentPlayerId(result: GameStateResult): string | null {
-  return result.state.currentPlayerId;
-}
-
-export function isFinished(result: GameStateResult): { finished: boolean; winnerId: string | null } {
-  return { finished: result.state.finished, winnerId: result.state.winnerId };
-}

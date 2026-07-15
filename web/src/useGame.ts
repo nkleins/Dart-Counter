@@ -11,7 +11,6 @@ function wsUrl(slug: string): string {
 
 export function useGame(slug: string) {
   const [view, setView] = useState<GameView | null>(null);
-  const [connected, setConnected] = useState(false);
   const closedRef = useRef(false);
 
   useEffect(() => {
@@ -20,10 +19,8 @@ export function useGame(slug: string) {
     let retry: ReturnType<typeof setTimeout>;
     const connect = () => {
       ws = new WebSocket(wsUrl(slug));
-      ws.onopen = () => setConnected(true);
       ws.onmessage = (e) => setView(JSON.parse(e.data as string) as GameView);
       ws.onclose = () => {
-        setConnected(false);
         if (!closedRef.current) retry = setTimeout(connect, 1500); // Reconnect
       };
     };
@@ -37,5 +34,5 @@ export function useGame(slug: string) {
   const extend = useCallback(async (duration: '1d' | '1w' | '1M') => { setView(await api.extendGame(slug, duration)); }, [slug]);
   const reset = useCallback(async (change?: { gameType: GameType; options: unknown }) => { setView(await api.resetGame(slug, change)); }, [slug]);
 
-  return { view, connected, throwDart, undo, join, extend, reset };
+  return { view, throwDart, undo, join, extend, reset };
 }
