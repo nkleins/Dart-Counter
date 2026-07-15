@@ -34,3 +34,6 @@ export async function joinGame(slug: string, input: { name: string; catchUp: 'ca
 export async function extendGame(slug: string, duration: '1d' | '1w' | '1M'): Promise<GameView> {
   return post(`/api/games/${slug}/extend`, { duration });
 }
+export async function resetGame(slug: string, change?: { gameType: GameType; options: unknown }): Promise<GameView> {
+  return post(`/api/games/${slug}/reset`, change);
+}

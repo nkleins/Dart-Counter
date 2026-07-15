@@ -8,12 +8,12 @@ const view: GameView = {
   slug: 's', gameType: 'x01', options: { start: 501 }, status: 'running', createdAt: 0, expiresAt: 0,
   players: [{ id: 'a', name: 'Mia', order: 0, joinedAtRound: 0, catchUp: 'handicap' }],
   history: [],
-  state: { currentPlayerId: 'a', round: 1, dartsThrownThisTurn: 1, finished: false, winnerId: null,
+  state: { currentPlayerId: 'a', round: 1, dartsThrownThisTurn: 1, dartsThisTurnTotal: 3, finished: false, winnerId: null,
     players: [{ playerId: 'a', remaining: 441, dartsThrown: 1, opened: true, finished: false }] } as never,
 };
 
 vi.mock('../useGame.js', () => ({
-  useGame: () => ({ view, connected: true, throwDart: vi.fn(), undo: vi.fn(), join: vi.fn(), extend: vi.fn() }),
+  useGame: () => ({ view, connected: true, throwDart: vi.fn(), undo: vi.fn(), join: vi.fn(), extend: vi.fn(), reset: vi.fn() }),
 }));
 
 describe('GamePage', () => {

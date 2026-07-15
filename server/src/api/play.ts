@@ -1,11 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import type { DB } from '../db.js';
 import {
-  getGameBySlug, addPlayer, listPlayers, listThrows, appendThrow, undoLastThrow, setStatus, extendGame,
+  getGameBySlug, addPlayer, listPlayers, listThrows, appendThrow, undoLastThrow, setStatus, extendGame, resetGame,
 } from '../repo.js';
 import { computeGameState } from '../engine/index.js';
 import type { PlayerInput, PlayerDart } from '../engine/types.js';
-import { buildGameView, firstTurnDartsFor } from './games.js';
+import { buildGameView, firstTurnDartsFor, validGameConfig } from './games.js';
+
+const GAME_TYPES = ['x01', 'cricket', 'aroundTheClock'] as const;
 
 function computeCurrent(db: DB, gameId: number, gameType: 'x01' | 'cricket' | 'aroundTheClock', options: unknown) {
   const players = listPlayers(db, gameId);
@@ -64,6 +66,22 @@ export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug
     onChange(slug);
     const fresh = getGameBySlug(db, slug)!;
     return reply.send(buildGameView(db, fresh));
+  });
+
+  app.post('/api/games/:slug/reset', async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const game = getGameBySlug(db, slug);
+    if (!game) return reply.code(404).send({ error: 'nicht gefunden' });
+    const body = (req.body ?? {}) as { gameType?: string; options?: unknown };
+    let change: { gameType: 'x01' | 'cricket' | 'aroundTheClock'; options: unknown } | undefined;
+    if (body.gameType !== undefined) {
+      if (!GAME_TYPES.includes(body.gameType as (typeof GAME_TYPES)[number])) return reply.code(400).send({ error: 'ungültiger Spieltyp' });
+      if (!validGameConfig(body.gameType, body.options)) return reply.code(400).send({ error: 'ungültige Optionen' });
+      change = { gameType: body.gameType as (typeof GAME_TYPES)[number], options: body.options ?? {} };
+    }
+    resetGame(db, game.id, change);
+    onChange(slug);
+    return reply.send(buildGameView(db, getGameBySlug(db, slug)!));
   });
 
   app.post('/api/games/:slug/extend', async (req, reply) => {

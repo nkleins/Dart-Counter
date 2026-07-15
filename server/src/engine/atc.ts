@@ -12,6 +12,7 @@ export interface AtcState {
   currentPlayerId: string | null;
   round: number;
   dartsThrownThisTurn: number;
+  dartsThisTurnTotal: number;
   finished: boolean;
   winnerId: string | null;
   sequence: number[];
@@ -60,13 +61,14 @@ export function computeAtcState(
       currentPlayerId: null,
       round: Math.max(1, Math.ceil(turns.length / Math.max(1, order.length))),
       dartsThrownThisTurn: 0,
+      dartsThisTurnTotal: 0,
       finished: true,
       winnerId,
       sequence: SEQUENCE,
       players: players_out,
     };
   }
-  const { currentPlayerId, dartsThrownThisTurn } = turnCursor(turns, order, lastTurnComplete);
+  const { currentPlayerId, dartsThrownThisTurn, dartsThisTurnTotal } = turnCursor(turns, order, lastTurnComplete, firstTurnDarts);
   const round = currentPlayerId ? roundFor(turns, order, currentPlayerId, lastTurnComplete) : 1;
-  return { currentPlayerId, round, dartsThrownThisTurn, finished: false, winnerId: null, sequence: SEQUENCE, players: players_out };
+  return { currentPlayerId, round, dartsThrownThisTurn, dartsThisTurnTotal, finished: false, winnerId: null, sequence: SEQUENCE, players: players_out };
 }

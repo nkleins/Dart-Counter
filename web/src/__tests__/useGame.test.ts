@@ -16,7 +16,7 @@ class FakeWS {
 const view: GameView = {
   slug: 's', gameType: 'x01', options: {}, status: 'running', createdAt: 0, expiresAt: 0,
   players: [], history: [],
-  state: { currentPlayerId: 'a', round: 1, dartsThrownThisTurn: 0, finished: false, winnerId: null, players: [] } as never,
+  state: { currentPlayerId: 'a', round: 1, dartsThrownThisTurn: 0, dartsThisTurnTotal: 3, finished: false, winnerId: null, players: [] } as never,
 };
 
 beforeEach(() => { vi.stubGlobal('WebSocket', FakeWS as never); });

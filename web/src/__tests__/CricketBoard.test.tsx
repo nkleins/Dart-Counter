@@ -9,7 +9,7 @@ const players: PlayerMeta[] = [
   { id: 'b', name: 'Ben', order: 1, joinedAtRound: 0, catchUp: 'handicap' },
 ];
 const state: CricketState = {
-  currentPlayerId: 'a', round: 1, dartsThrownThisTurn: 0, finished: false, winnerId: null,
+  currentPlayerId: 'a', round: 1, dartsThrownThisTurn: 0, dartsThisTurnTotal: 3, finished: false, winnerId: null,
   targets: [20, 19, 18, 17, 16, 15, 25], deadTargets: [18],
   players: [
     { playerId: 'a', marks: { 20: 3, 18: 3 }, score: 0, closedAll: false },

@@ -14,6 +14,7 @@ export interface X01State {
   currentPlayerId: string | null;
   round: number;
   dartsThrownThisTurn: number;
+  dartsThisTurnTotal: number;
   finished: boolean;
   winnerId: string | null;
   players: X01PlayerState[];
@@ -88,7 +89,7 @@ export function computeX01State(
     if (i === turns.length - 1) lastTurnComplete = busted || wonThisTurn || turn.darts.length >= turn.cap;
   }
 
-  return assembleState(order, ps, turns, winnerId, lastTurnComplete);
+  return assembleState(order, ps, turns, winnerId, lastTurnComplete, firstTurnDarts);
 }
 
 /**
@@ -103,6 +104,7 @@ function assembleState(
   turns: Turn[],
   winnerId: string | null,
   lastTurnComplete: boolean,
+  firstTurnDarts: Map<string, number>,
 ): X01State {
   const players_out = order.map((id) => ps.get(id)!);
   if (winnerId) {
@@ -110,12 +112,13 @@ function assembleState(
       currentPlayerId: null,
       round: Math.max(1, Math.ceil(turns.length / Math.max(1, order.length))),
       dartsThrownThisTurn: 0,
+      dartsThisTurnTotal: 0,
       finished: true,
       winnerId,
       players: players_out,
     };
   }
-  const { currentPlayerId, dartsThrownThisTurn } = turnCursor(turns, order, lastTurnComplete);
+  const { currentPlayerId, dartsThrownThisTurn, dartsThisTurnTotal } = turnCursor(turns, order, lastTurnComplete, firstTurnDarts);
   const round = currentPlayerId ? roundFor(turns, order, currentPlayerId, lastTurnComplete) : 1;
-  return { currentPlayerId, round, dartsThrownThisTurn, finished: false, winnerId: null, players: players_out };
+  return { currentPlayerId, round, dartsThrownThisTurn, dartsThisTurnTotal, finished: false, winnerId: null, players: players_out };
 }

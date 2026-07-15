@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Dart, GameView } from './types.js';
+import type { Dart, GameType, GameView } from './types.js';
 import * as api from './api.js';
 
 function wsUrl(slug: string): string {
@@ -35,6 +35,7 @@ export function useGame(slug: string) {
   const undo = useCallback(async () => { setView(await api.undo(slug)); }, [slug]);
   const join = useCallback(async (input: { name: string; catchUp: 'catchUp' | 'handicap' }) => { await api.joinGame(slug, input); }, [slug]);
   const extend = useCallback(async (duration: '1d' | '1w' | '1M') => { setView(await api.extendGame(slug, duration)); }, [slug]);
+  const reset = useCallback(async (change?: { gameType: GameType; options: unknown }) => { setView(await api.resetGame(slug, change)); }, [slug]);
 
-  return { view, connected, throwDart, undo, join, extend };
+  return { view, connected, throwDart, undo, join, extend, reset };
 }

@@ -12,6 +12,7 @@ export interface CricketState {
   currentPlayerId: string | null;
   round: number;
   dartsThrownThisTurn: number;
+  dartsThisTurnTotal: number;
   finished: boolean;
   winnerId: string | null;
   targets: number[];
@@ -80,9 +81,10 @@ export function computeCricketState(
   });
   const deadTargets = targets.filter((t) => players_out.every((p) => (p.marks[t] ?? 0) >= 3));
 
-  const cursor = turnCursor(turns, order, lastTurnComplete);
+  const cursor = turnCursor(turns, order, lastTurnComplete, firstTurnDarts);
   const currentPlayerId = winnerId ? null : cursor.currentPlayerId;
   const dartsThrownThisTurn = winnerId ? 0 : cursor.dartsThrownThisTurn;
+  const dartsThisTurnTotal = winnerId ? 0 : cursor.dartsThisTurnTotal;
   const round = currentPlayerId
     ? roundFor(turns, order, currentPlayerId, lastTurnComplete)
     : Math.max(1, Math.ceil(turns.length / Math.max(1, order.length)));
@@ -91,6 +93,7 @@ export function computeCricketState(
     currentPlayerId,
     round,
     dartsThrownThisTurn,
+    dartsThisTurnTotal,
     finished: winnerId !== null,
     winnerId,
     targets,

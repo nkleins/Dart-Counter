@@ -101,6 +101,22 @@ export function setStatus(db: DB, gameId: number, status: 'lobby' | 'running' | 
   db.prepare('UPDATE games SET status = ? WHERE id = ?').run(status, gameId);
 }
 
+/**
+ * Setzt ein Spiel für „Neustarten" / „Modus wechseln" zurück: alle Würfe löschen,
+ * optional Spieltyp/Optionen ändern, Aufhol-Info der Spieler*innen zurücksetzen
+ * (alle starten wieder gleichauf) und Status auf 'lobby'.
+ */
+export function resetGame(db: DB, gameId: number, change?: { gameType: GameType; options: unknown }): void {
+  db.prepare('DELETE FROM throw_events WHERE game_id = ?').run(gameId);
+  db.prepare("UPDATE players SET joined_at_round = 0, catch_up = 'handicap' WHERE game_id = ?").run(gameId);
+  if (change) {
+    db.prepare('UPDATE games SET game_type = ?, options = ?, status = ? WHERE id = ?')
+      .run(change.gameType, JSON.stringify(change.options), 'lobby', gameId);
+  } else {
+    db.prepare("UPDATE games SET status = 'lobby' WHERE id = ?").run(gameId);
+  }
+}
+
 export function extendGame(db: DB, gameId: number, addMs: number): number {
   const row = db.prepare('SELECT expires_at FROM games WHERE id = ?').get(gameId) as { expires_at: number } | undefined;
   if (!row) throw new Error('game not found');

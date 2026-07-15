@@ -69,7 +69,7 @@ export function HistoryTab({ view, onJoin, onExtend }: {
         <h3 style={heading}>Verlauf</h3>
         {[...view.history].reverse().map((e) => (
           <div key={e.seq} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 4px', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-            <span style={{ color: 'var(--muted)', flex: '0 0 auto' }}>Runde {e.round} · Wurf {e.dartNo}</span>
+            <span style={{ color: e.catchUp ? 'var(--amber)' : 'var(--muted)', flex: '0 0 auto' }}>{e.catchUp ? 'Aufholrunde' : `Runde ${e.round}`} · Wurf {e.dartNo}</span>
             <span style={{ flex: 1, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nameOf(e.playerId)}</span>
             <span style={{ fontWeight: 700, flex: '0 0 auto', minWidth: 44, textAlign: 'right' }}>{label(e.segment, e.multiplier)}</span>
           </div>

@@ -31,14 +31,20 @@ describe('groupTurns — Erstzug-Cap (Aufholen)', () => {
 
 describe('turnCursor', () => {
   it('leeres Spiel: erster Spieler, 0 Darts', () => {
-    expect(turnCursor([], ['a','b'], true)).toEqual({ currentPlayerId: 'a', dartsThrownThisTurn: 0 });
+    expect(turnCursor([], ['a','b'], true)).toEqual({ currentPlayerId: 'a', dartsThrownThisTurn: 0, dartsThisTurnTotal: 3 });
   });
   it('unvollständiger letzter Zug: selber Spieler', () => {
     const turns = groupTurns([d('a',1,1), d('a',1,1)]);
-    expect(turnCursor(turns, ['a','b'], false)).toEqual({ currentPlayerId: 'a', dartsThrownThisTurn: 2 });
+    expect(turnCursor(turns, ['a','b'], false)).toEqual({ currentPlayerId: 'a', dartsThrownThisTurn: 2, dartsThisTurnTotal: 3 });
   });
   it('abgeschlossener letzter Zug: nächster Spieler', () => {
     const turns = groupTurns([d('a',1,1), d('a',1,1), d('a',1,1)]);
-    expect(turnCursor(turns, ['a','b'], true)).toEqual({ currentPlayerId: 'b', dartsThrownThisTurn: 0 });
+    expect(turnCursor(turns, ['a','b'], true)).toEqual({ currentPlayerId: 'b', dartsThrownThisTurn: 0, dartsThisTurnTotal: 3 });
+  });
+  it('Aufhol-Erstzug: Gesamt-Darts = firstTurnDarts', () => {
+    const ftd = new Map<string, number>([['b', 6]]);
+    // a hat einen kompletten Zug geworfen -> b ist dran, Erstzug mit Cap 6
+    const turns = groupTurns([d('a',1,1), d('a',1,1), d('a',1,1)]);
+    expect(turnCursor(turns, ['a','b'], true, ftd)).toEqual({ currentPlayerId: 'b', dartsThrownThisTurn: 0, dartsThisTurnTotal: 6 });
   });
 });

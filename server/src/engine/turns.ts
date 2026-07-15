@@ -23,22 +23,37 @@ export function groupTurns(darts: PlayerDart[], firstTurnDarts: Map<string, numb
   return turns;
 }
 
-/** Aktueller Spieler + bereits geworfene Darts im laufenden Zug. */
+/**
+ * Aktueller Spieler + bereits geworfene Darts im laufenden Zug + die Gesamtzahl
+ * der in diesem Zug zu werfenden Darts (`dartsThisTurnTotal`). Normalerweise 3,
+ * beim Aufhol-Erstzug entsprechend größer (firstTurnDarts).
+ */
 export function turnCursor(
   turns: Turn[],
   order: string[],
   lastTurnComplete: boolean,
-): { currentPlayerId: string | null; dartsThrownThisTurn: number } {
+  firstTurnDarts: Map<string, number> = new Map(),
+): { currentPlayerId: string | null; dartsThrownThisTurn: number; dartsThisTurnTotal: number } {
+  // Cap für einen *neu* beginnenden Zug: erster Zug des Spielers -> firstTurnDarts, sonst 3.
+  const capForNewTurn = (playerId: string | null): number => {
+    if (!playerId) return 3;
+    const started = turns.some((t) => t.playerId === playerId);
+    return started ? 3 : (firstTurnDarts.get(playerId) ?? 3);
+  };
+
   if (turns.length === 0) {
-    return { currentPlayerId: order[0] ?? null, dartsThrownThisTurn: 0 };
+    const current = order[0] ?? null;
+    return { currentPlayerId: current, dartsThrownThisTurn: 0, dartsThisTurnTotal: capForNewTurn(current) };
   }
   const last = turns[turns.length - 1]!;
   const lastIdx = order.indexOf(last.playerId);
   const curIdx = lastTurnComplete ? (lastIdx + 1) % order.length : lastIdx;
-  return {
-    currentPlayerId: order[curIdx] ?? null,
-    dartsThrownThisTurn: lastTurnComplete ? 0 : last.darts.length,
-  };
+  const current = order[curIdx] ?? null;
+  if (!lastTurnComplete) {
+    // Laufender Zug ist `last` – Cap ist bereits bekannt.
+    return { currentPlayerId: current, dartsThrownThisTurn: last.darts.length, dartsThisTurnTotal: last.cap };
+  }
+  return { currentPlayerId: current, dartsThrownThisTurn: 0, dartsThisTurnTotal: capForNewTurn(current) };
 }
 
 /** Runde des aktuellen Spielers = abgeschlossene Züge dieses Spielers + 1. */

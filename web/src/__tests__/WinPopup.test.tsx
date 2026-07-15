@@ -8,7 +8,7 @@ describe('WinPopup', () => {
     const onUndo = vi.fn();
     render(<WinPopup winnerName="Mia" onUndo={onUndo} onClose={vi.fn()} />);
     expect(screen.getByText(/Mia/)).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: /fehltipp|zurück|undo/i }));
+    await userEvent.click(screen.getByRole('button', { name: /fehltipp/i }));
     expect(onUndo).toHaveBeenCalled();
   });
 });

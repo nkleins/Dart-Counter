@@ -36,7 +36,7 @@ export interface GameView {
   createdAt: number; expiresAt: number;
   players: { id: string; name: string; order: number; joinedAtRound: number; catchUp: string }[];
   state: unknown;
-  history: { seq: number; playerId: string; segment: number; multiplier: number; round: number; dartNo: number }[];
+  history: { seq: number; playerId: string; segment: number; multiplier: number; round: number; dartNo: number; catchUp: boolean }[];
 }
 
 export function buildGameView(db: DB, game: GameRow): GameView {
@@ -46,17 +46,30 @@ export function buildGameView(db: DB, game: GameRow): GameView {
   const darts: PlayerDart[] = history.map((e) => ({ playerId: e.playerId, segment: e.segment, multiplier: e.multiplier }));
   const result = computeGameState(game.gameType, game.options, engineIn, darts);
 
-  // Runde + Wurfnummer (1–3) je Wurf für die Verlaufsanzeige herleiten.
+  // Runde + Wurfnummer je Wurf für die Verlaufsanzeige herleiten.
+  // Aufhol-Spieler*innen werfen ihren Erstzug als „Aufholrunde"; danach knüpfen
+  // ihre Runden an die der anderen an (Start bei joinedAtRound + 1).
   const firstTurnDarts = new Map<string, number>();
   for (const p of players) { const f = firstTurnDartsFor(p); if (f) firstTurnDarts.set(p.id, f); }
-  const turnMeta: { round: number; dartNo: number }[] = [];
+  const playerById = new Map(players.map((p) => [p.id, p]));
+  const turnMeta: { round: number; dartNo: number; catchUp: boolean }[] = [];
   const roundCount = new Map<string, number>();
+  const seenFirstTurn = new Set<string>();
   for (const turn of groupTurns(darts, firstTurnDarts)) {
-    const round = (roundCount.get(turn.playerId) ?? 0) + 1;
-    roundCount.set(turn.playerId, round);
-    turn.darts.forEach((_, i) => turnMeta.push({ round, dartNo: i + 1 }));
+    const p = playerById.get(turn.playerId);
+    const isCatchUpTurn = !seenFirstTurn.has(turn.playerId) && !!p && p.catchUp === 'catchUp' && p.joinedAtRound > 0;
+    seenFirstTurn.add(turn.playerId);
+    if (isCatchUpTurn) {
+      // Aufholrunde – danach an die Runde der anderen anknüpfen.
+      roundCount.set(turn.playerId, p!.joinedAtRound);
+      turn.darts.forEach((_, i) => turnMeta.push({ round: p!.joinedAtRound, dartNo: i + 1, catchUp: true }));
+    } else {
+      const round = (roundCount.get(turn.playerId) ?? 0) + 1;
+      roundCount.set(turn.playerId, round);
+      turn.darts.forEach((_, i) => turnMeta.push({ round, dartNo: i + 1, catchUp: false }));
+    }
   }
-  const historyView = history.map((e, i) => ({ ...e, round: turnMeta[i]?.round ?? 1, dartNo: turnMeta[i]?.dartNo ?? 1 }));
+  const historyView = history.map((e, i) => ({ ...e, round: turnMeta[i]?.round ?? 1, dartNo: turnMeta[i]?.dartNo ?? 1, catchUp: turnMeta[i]?.catchUp ?? false }));
 
   return {
     slug: game.slug, gameType: game.gameType, options: game.options, status: game.status,
