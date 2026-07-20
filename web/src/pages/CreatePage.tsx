@@ -30,10 +30,11 @@ export function CreatePage() {
         <GameOptionsPicker onChange={(gt, opts) => { setGameType(gt); setOptions(opts); }} />
       </div>
 
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--amber)', marginBottom: 9 }}>Spieler*innen</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 8 }}>
           {players.map((p, i) => (
-            <div key={i} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', display: 'flex' }}>
+            <div key={i} style={{ background: '#141922', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', display: 'flex' }}>
               <span style={{ flex: 1 }}>{p}</span>
               <span style={{ cursor: 'pointer', color: 'var(--muted)' }} onClick={() => setPlayers((ps) => ps.filter((_, j) => j !== i))}>✕</span>
             </div>

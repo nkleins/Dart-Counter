@@ -18,7 +18,8 @@ describe('FinishActions', () => {
     const onChangeMode = vi.fn();
     render(<FinishActions onRestart={vi.fn()} onChangeMode={onChangeMode} onHome={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Modus wechseln' }));
-    // x01 ist Default; Start 301 und Out: master wählen
+    // x01 ist Default; Optionen-Fold aufklappen, dann Start 301 und Out: master wählen
+    await userEvent.click(screen.getByRole('button', { name: /^Optionen/ }));
     await userEvent.click(screen.getByRole('button', { name: '301' }));
     await userEvent.click(screen.getByRole('button', { name: 'Out: master' }));
     await userEvent.click(screen.getByRole('button', { name: /Neues Spiel starten/ }));
@@ -30,6 +31,7 @@ describe('FinishActions', () => {
     render(<FinishActions onRestart={vi.fn()} onChangeMode={onChangeMode} onHome={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Modus wechseln' }));
     await userEvent.click(screen.getByRole('button', { name: 'Cricket' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Optionen/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Cut-Throat' }));
     await userEvent.click(screen.getByRole('button', { name: /Neues Spiel starten/ }));
     expect(onChangeMode).toHaveBeenCalledWith('cricket', { mode: 'cutthroat', bull: true, format: { kind: 'casual' } });

@@ -27,6 +27,7 @@ describe('GameOptionsPicker Format', () => {
   it('Format: Single Set zeigt Leg-Unter-Buttons und meldet legs im Format', () => {
     const onChange = vi.fn();
     const { getByText } = render(<GameOptionsPicker onChange={onChange} />);
+    fireEvent.click(getByText('Format')); // Fold aufklappen
     fireEvent.click(getByText('Single Set'));
     // Unter-Buttons erscheinen
     fireEvent.click(getByText('7 Legs'));
@@ -40,5 +41,13 @@ describe('GameOptionsPicker Format', () => {
     render(<GameOptionsPicker onChange={onChange} />);
     const first = onChange.mock.calls[0]!;
     expect((first[1] as { format: { kind: string } }).format).toEqual({ kind: 'casual' });
+  });
+
+  it('Around the Clock hat keinen Optionen-Fold', () => {
+    const onChange = vi.fn();
+    const { getByText, queryByText } = render(<GameOptionsPicker onChange={onChange} />);
+    expect(getByText('Optionen')).toBeTruthy();       // x01: Optionen-Fold vorhanden
+    fireEvent.click(getByText('Around the Clock'));
+    expect(queryByText('Optionen')).toBe(null);        // ATC: kein Optionen-Fold
   });
 });
