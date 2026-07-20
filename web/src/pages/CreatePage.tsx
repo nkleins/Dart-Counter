@@ -1,15 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { GameType } from '../types.js';
 import { createGame } from '../api.js';
 import { GameOptionsPicker } from '../components/GameOptionsPicker.js';
 
+// Zuletzt eingetragene Spielernamen lokal merken (gleiches Gerät, nächster Besuch).
+const PLAYERS_KEY = 'dc:createPlayers';
+function readPlayers(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(PLAYERS_KEY) ?? '[]');
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 8) : [];
+  } catch { return []; }
+}
+
 export function CreatePage() {
   const nav = useNavigate();
   const [gameType, setGameType] = useState<GameType>('x01');
   const [options, setOptions] = useState<unknown>({ start: 501, in: 'straight', out: 'double' });
-  const [players, setPlayers] = useState<string[]>([]);
+  const [players, setPlayers] = useState<string[]>(readPlayers);
   const [name, setName] = useState('');
+
+  useEffect(() => {
+    try { localStorage.setItem(PLAYERS_KEY, JSON.stringify(players)); } catch { /* Storage n/a */ }
+  }, [players]);
 
   const addPlayer = () => {
     const n = name.trim().slice(0, 14);

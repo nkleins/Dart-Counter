@@ -9,7 +9,7 @@ import * as api from '../api.js';
 const nav = vi.fn();
 vi.mock('react-router-dom', async (orig) => ({ ...(await orig<typeof import('react-router-dom')>()), useNavigate: () => nav }));
 
-beforeEach(() => { nav.mockReset(); });
+beforeEach(() => { nav.mockReset(); localStorage.clear(); });
 
 describe('CreatePage', () => {
   it('erstellt x01 mit Spielern und navigiert', async () => {
@@ -20,6 +20,13 @@ describe('CreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: /spiel erstellen/i }));
     expect(api.createGame).toHaveBeenCalledWith(expect.objectContaining({ gameType: 'x01', players: ['Mia'] }));
     expect(nav).toHaveBeenCalledWith('/g/abc');
+  });
+
+  it('füllt zuletzt genutzte Spielernamen aus localStorage vor', () => {
+    localStorage.setItem('dc:createPlayers', JSON.stringify(['Mia', 'Ben']));
+    render(<MemoryRouter><CreatePage /></MemoryRouter>);
+    expect(screen.getByText('Mia')).toBeTruthy();
+    expect(screen.getByText('Ben')).toBeTruthy();
   });
 });
 
@@ -49,5 +56,21 @@ describe('GameOptionsPicker Format', () => {
     expect(getByText('Optionen')).toBeTruthy();       // x01: Optionen-Fold vorhanden
     fireEvent.click(getByText('Around the Clock'));
     expect(queryByText('Optionen')).toBe(null);        // ATC: kein Optionen-Fold
+  });
+
+  it('lädt zuletzt gewählte Einstellungen aus localStorage', () => {
+    localStorage.setItem('dc:createOptions', JSON.stringify({ gameType: 'cricket', cricketMode: 'cutthroat', bull: false, formatKind: 'singleSet', legs: 5 }));
+    const onChange = vi.fn();
+    render(<GameOptionsPicker onChange={onChange} />);
+    const opts = onChange.mock.calls[0]![1] as { mode: string; bull: boolean; format: { kind: string; legs: number } };
+    expect(opts).toMatchObject({ mode: 'cutthroat', bull: false, format: { kind: 'singleSet', legs: 5 } });
+  });
+
+  it('speichert eine Änderung in localStorage', () => {
+    const onChange = vi.fn();
+    const { getByText } = render(<GameOptionsPicker onChange={onChange} />);
+    fireEvent.click(getByText('Cricket'));
+    const saved = JSON.parse(localStorage.getItem('dc:createOptions')!);
+    expect(saved.gameType).toBe('cricket');
   });
 });

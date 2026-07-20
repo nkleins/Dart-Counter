@@ -13,21 +13,34 @@ const card: React.CSSProperties = { background: 'var(--card)', border: '1px soli
 const eyebrow: React.CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--amber)', marginBottom: 9 };
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+// Zuletzt gewählte Einstellungen lokal merken (gleiches Gerät, nächster Besuch).
+const SETTINGS_KEY = 'dc:createOptions';
+interface Saved {
+  gameType: GameType; start: 301 | 501 | 701; inRule: InOut; outRule: InOut;
+  cricketMode: 'standard' | 'cutthroat'; bull: boolean;
+  formatKind: MatchFormat['kind']; legs: 3 | 5 | 7; sets: 3 | 5 | 7;
+}
+function readSaved(): Partial<Saved> {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') as Partial<Saved>; }
+  catch { return {}; }
+}
+
 /**
  * Auswahl von Spiel + Optionen + Format. Spiel als Karte; Optionen und Format als
  * standardmäßig zugeklappte Folds (Optionen entfällt bei Around the Clock). Meldet die
  * Konfiguration via `onChange` — genutzt beim Erstellen und beim „Modus wechseln".
  */
 export function GameOptionsPicker({ onChange }: { onChange: (gameType: GameType, options: unknown) => void }) {
-  const [gameType, setGameType] = useState<GameType>('x01');
-  const [start, setStart] = useState<301 | 501 | 701>(501);
-  const [inRule, setInRule] = useState<InOut>('straight');
-  const [outRule, setOutRule] = useState<InOut>('double');
-  const [cricketMode, setCricketMode] = useState<'standard' | 'cutthroat'>('standard');
-  const [bull, setBull] = useState(true);
-  const [formatKind, setFormatKind] = useState<MatchFormat['kind']>('casual');
-  const [legs, setLegs] = useState<3 | 5 | 7>(3);
-  const [sets, setSets] = useState<3 | 5 | 7>(3);
+  const [saved] = useState(readSaved); // einmalig beim Mount lesen
+  const [gameType, setGameType] = useState<GameType>(saved.gameType ?? 'x01');
+  const [start, setStart] = useState<301 | 501 | 701>(saved.start ?? 501);
+  const [inRule, setInRule] = useState<InOut>(saved.inRule ?? 'straight');
+  const [outRule, setOutRule] = useState<InOut>(saved.outRule ?? 'double');
+  const [cricketMode, setCricketMode] = useState<'standard' | 'cutthroat'>(saved.cricketMode ?? 'standard');
+  const [bull, setBull] = useState(saved.bull ?? true);
+  const [formatKind, setFormatKind] = useState<MatchFormat['kind']>(saved.formatKind ?? 'casual');
+  const [legs, setLegs] = useState<3 | 5 | 7>(saved.legs ?? 3);
+  const [sets, setSets] = useState<3 | 5 | 7>(saved.sets ?? 3);
 
   useEffect(() => {
     const format: MatchFormat =
@@ -39,6 +52,7 @@ export function GameOptionsPicker({ onChange }: { onChange: (gameType: GameType,
       gameType === 'cricket' ? { mode: cricketMode, bull, format } :
       { advanceByMultiplier: true, format };
     onChange(gameType, options);
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ gameType, start, inRule, outRule, cricketMode, bull, formatKind, legs, sets })); } catch { /* Storage n/a */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameType, start, inRule, outRule, cricketMode, bull, formatKind, legs, sets]);
 

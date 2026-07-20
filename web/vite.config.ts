@@ -3,5 +3,6 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  test: { environment: 'jsdom', globals: true, include: ['src/**/*.test.{ts,tsx}'] },
+  // setupFiles stellt ein In-Memory-localStorage bereit (jsdom liefert hier keins) — nötig für die Persistenz der Erstellungs-Auswahl.
+  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], globals: true, include: ['src/**/*.test.{ts,tsx}'] },
 });
