@@ -29,6 +29,7 @@ export interface MatchSummary {
   setWinnerId: string | null;
   matchWinnerId: string | null;
   finished: boolean;
+  averages: Record<string, number> | null;
 }
 
 export interface GameView {

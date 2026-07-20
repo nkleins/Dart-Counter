@@ -49,4 +49,5 @@ export interface MatchSummary {
   setWinnerId: string | null;        // nur an einer Set-Grenze gesetzt
   matchWinnerId: string | null;      // Gesamtsieger
   finished: boolean;                 // Match beendet
+  averages: Record<string, number> | null; // 3-Dart-Ø je Person über das ganze Match (nur x01, sonst null)
 }

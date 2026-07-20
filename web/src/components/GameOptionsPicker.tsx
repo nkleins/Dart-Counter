@@ -78,16 +78,17 @@ export function GameOptionsPicker({ onChange }: { onChange: (gameType: GameType,
             <button key={k} style={pill(formatKind === k)} onClick={() => setFormatKind(k)}>{label}</button>
           ))}
         </div>
-        {(formatKind === 'singleSet' || formatKind === 'match') && (
-          <div style={{ display: 'flex', gap: 7, marginBottom: formatKind === 'match' ? 8 : 0, flexWrap: 'wrap' }}>
-            <span style={{ alignSelf: 'center', fontSize: 12, color: 'var(--muted)' }}>Best of</span>
-            {([3, 5, 7] as const).map((n) => <button key={n} style={pill(legs === n)} onClick={() => setLegs(n)}>{n} Legs</button>)}
-          </div>
-        )}
+        {/* Sets ist übergeordnet -> im Match-Modus zuerst, Legs darunter. */}
         {formatKind === 'match' && (
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 7, marginBottom: 8, flexWrap: 'wrap' }}>
             <span style={{ alignSelf: 'center', fontSize: 12, color: 'var(--muted)' }}>Best of</span>
             {([3, 5, 7] as const).map((n) => <button key={n} style={pill(sets === n)} onClick={() => setSets(n)}>{n} Sets</button>)}
+          </div>
+        )}
+        {(formatKind === 'singleSet' || formatKind === 'match') && (
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+            <span style={{ alignSelf: 'center', fontSize: 12, color: 'var(--muted)' }}>Best of</span>
+            {([3, 5, 7] as const).map((n) => <button key={n} style={pill(legs === n)} onClick={() => setLegs(n)}>{n} Legs</button>)}
           </div>
         )}
       </div>

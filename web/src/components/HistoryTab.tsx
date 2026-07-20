@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import type { GameView, PlayerMeta } from '../types.js';
+import type { GameView, PlayerMeta, MatchFormat } from '../types.js';
+
+/** Lesbare Beschreibung des gewählten Formats für den Standings-Kopf. */
+function formatLabel(f: MatchFormat): string {
+  if (f.kind === 'casual') return 'Casual · Ein Leg';
+  if (f.kind === 'singleSet') return `Single Set · Best of ${f.legs} Legs`;
+  return `Match · Best of ${f.sets} Sets, je Best of ${f.legs} Legs`;
+}
 
 export function HistoryTab({ view, onJoin, onRemove, onExtend, onHome }: {
   view: GameView;
@@ -25,8 +32,40 @@ export function HistoryTab({ view, onJoin, onRemove, onExtend, onHome }: {
   const heading: React.CSSProperties = { fontSize: 12, color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 9px' };
   const chip: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 9, padding: '8px 12px', fontWeight: 700 };
 
+  const fmt = view.match.format;
+  const isMatch = fmt.kind === 'match';
+  const hasLegsCol = fmt.kind !== 'casual';
+  const isX01 = view.gameType === 'x01';
+  const showStandings = hasLegsCol || isX01; // Sets/Legs oder (x01) der Ø geben etwas her
+  const colNum: React.CSSProperties = { width: 40, textAlign: 'right', fontWeight: 700 };
+  const colHead: React.CSSProperties = { width: 40, textAlign: 'right' };
+
   return (
     <div>
+      {/* — Standings — */}
+      {showStandings && (
+        <section style={{ marginBottom: 20 }}>
+          <h3 style={heading}>Standings</h3>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 9 }}>{formatLabel(fmt)}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, padding: '0 12px 4px' }}>
+            <span style={{ flex: 1 }} />
+            {isMatch && <span style={colHead}>Sets</span>}
+            {hasLegsCol && <span style={colHead}>Legs</span>}
+            {isX01 && <span style={{ ...colHead, width: 56 }}>Ø</span>}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {view.players.map((p) => (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px' }}>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                {isMatch && <span style={colNum}>{view.match.setsWon[p.id] ?? 0}</span>}
+                {hasLegsCol && <span style={colNum}>{view.match.legsWon[p.id] ?? 0}</span>}
+                {isX01 && <span style={{ ...colNum, width: 56, fontWeight: 400, color: 'var(--muted)' }}>{view.match.averages ? (view.match.averages[p.id] ?? 0).toFixed(1) : '—'}</span>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* — Spieler*innen — */}
       <section style={{ marginBottom: 20 }}>
         <h3 style={heading}>Spieler*innen</h3>

@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import { HistoryTab } from '../components/HistoryTab.js';
 import type { GameView } from '../types.js';
 
-const casualMatch = { format: { kind: 'casual' as const }, legsWon: {}, setsWon: {}, legNumber: 1, setNumber: 1, legWinnerId: null, setWinnerId: null, matchWinnerId: null, finished: false };
+const casualMatch = { format: { kind: 'casual' as const }, legsWon: {}, setsWon: {}, legNumber: 1, setNumber: 1, legWinnerId: null, setWinnerId: null, matchWinnerId: null, finished: false, averages: null };
 
 function view(kind: 'casual' | 'singleSet', status: GameView['status']): GameView {
   return {
@@ -24,5 +24,20 @@ describe('HistoryTab — Beitritts-Sperre', () => {
   it('Casual + running: Name-Eingabe ist aktiv', () => {
     const { getByPlaceholderText } = render(<HistoryTab view={view('casual', 'running')} onJoin={noop} onRemove={noop} onExtend={noop} onHome={noop} />);
     expect((getByPlaceholderText('Name…') as HTMLInputElement).disabled).toBe(false);
+  });
+});
+
+describe('HistoryTab — Standings', () => {
+  it('Single Set: Standings-Block mit Format-Label und Legs-Spalte', () => {
+    const { getByText } = render(<HistoryTab view={view('singleSet', 'running')} onJoin={noop} onRemove={noop} onExtend={noop} onHome={noop} />);
+    expect(getByText('Standings')).toBeTruthy();
+    expect(getByText(/Single Set.*Best of 3 Legs/)).toBeTruthy();
+    expect(getByText('Legs')).toBeTruthy();
+  });
+
+  it('Casual x01: Standings zeigt Format und Ø-Spalte', () => {
+    const { getByText } = render(<HistoryTab view={view('casual', 'running')} onJoin={noop} onRemove={noop} onExtend={noop} onHome={noop} />);
+    expect(getByText(/Casual.*Ein Leg/)).toBeTruthy();
+    expect(getByText('Ø')).toBeTruthy();
   });
 });

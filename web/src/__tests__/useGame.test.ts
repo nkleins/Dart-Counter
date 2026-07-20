@@ -17,7 +17,7 @@ const view: GameView = {
   slug: 's', gameType: 'x01', options: {}, status: 'running', createdAt: 0, expiresAt: 0,
   players: [], history: [],
   state: { currentPlayerId: 'a', round: 1, dartsThrownThisTurn: 0, dartsThisTurnTotal: 3, finished: false, winnerId: null, players: [] } as never,
-  match: { format: { kind: 'casual' }, legsWon: {}, setsWon: {}, legNumber: 1, setNumber: 1, legWinnerId: null, setWinnerId: null, matchWinnerId: null, finished: false },
+  match: { format: { kind: 'casual' }, legsWon: {}, setsWon: {}, legNumber: 1, setNumber: 1, legWinnerId: null, setWinnerId: null, matchWinnerId: null, finished: false, averages: null },
 };
 
 beforeEach(() => { vi.stubGlobal('WebSocket', FakeWS as never); });

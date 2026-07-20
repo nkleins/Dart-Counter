@@ -1,5 +1,6 @@
 import type { GameType, PlayerDart, PlayerInput, MatchFormat, MatchSummary } from './types.js';
 import { computeGameState, type GameStateResult } from './index.js';
+import type { X01State } from './x01.js';
 
 /** Liest ein gültiges Format aus den Optionen; fehlt/ungültig → casual. */
 function readFormat(options: unknown): MatchFormat {
@@ -50,6 +51,13 @@ export function computeMatchState(
   const setsWon: Record<string, number> = {};
   for (const p of sorted) { legsWon[p.id] = 0; setsWon[p.id] = 0; }
 
+  // 3-Dart-Ø (nur x01): erzielte Punkte / geworfene Darts, über alle Legs summiert.
+  const isX01 = gameType === 'x01';
+  const x01Start = isX01 ? Number((options as { start?: unknown } | null)?.start ?? 0) : 0;
+  const points: Record<string, number> = {};
+  const dartsThrown: Record<string, number> = {};
+  if (isX01) for (const p of sorted) { points[p.id] = 0; dartsThrown[p.id] = 0; }
+
   const needLegs = legsToWin(format);
   const needSets = setsToWin(format);
 
@@ -65,6 +73,14 @@ export function computeMatchState(
     const rotated = rotatePlayers(sorted, legIndex);
     const slice = darts.slice(offset);
     const res = computeGameState(gameType, options, rotated, slice);
+    // Ø-Statistik dieses Legs aufaddieren (der Engine-Zustand endet beim Sieg-Dart,
+    // spiegelt also genau dieses Leg wider — genau einmal je Schleifendurchlauf).
+    if (isX01) {
+      for (const pl of (res.state as X01State).players) {
+        points[pl.playerId]! += x01Start - pl.remaining;
+        dartsThrown[pl.playerId]! += pl.dartsThrown;
+      }
+    }
     if (!res.state.finished) { leg = res; lastLegWinnerId = null; break; } // laufendes Leg
 
     const w = res.state.winnerId as string;
@@ -104,6 +120,15 @@ export function computeMatchState(
   const legsInSet = Object.values(legsWon).reduce((a, b) => a + b, 0);
   const setsPlayed = Object.values(setsWon).reduce((a, b) => a + b, 0);
 
+  let averages: Record<string, number> | null = null;
+  if (isX01) {
+    averages = {};
+    for (const p of sorted) {
+      const dc = dartsThrown[p.id]!;
+      averages[p.id] = dc > 0 ? (points[p.id]! / dc) * 3 : 0;
+    }
+  }
+
   const match: MatchSummary = {
     format,
     legsWon,
@@ -114,6 +139,7 @@ export function computeMatchState(
     setWinnerId: finished ? null : (lastLegWonSet ? lastLegWinnerId : null),
     matchWinnerId,
     finished,
+    averages,
   };
   return { leg, match };
 }

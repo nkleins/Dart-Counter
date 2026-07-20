@@ -25,7 +25,7 @@ export function GamePage() {
 
   return (
     <div style={{ maxWidth: 400, margin: '0 auto', padding: 16 }}>
-      <TurnBar name={nameOf(view.state.currentPlayerId)} dartsThrownThisTurn={view.state.dartsThrownThisTurn} dartsThisTurnTotal={view.state.dartsThisTurnTotal} onUndo={undo} match={view.match} players={view.players} />
+      <TurnBar name={nameOf(view.state.currentPlayerId)} dartsThrownThisTurn={view.state.dartsThrownThisTurn} dartsThisTurnTotal={view.state.dartsThisTurnTotal} onUndo={undo} match={view.match} activePlayerId={view.state.currentPlayerId} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <button onClick={() => setTab('board')} style={{ flex: 1, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: tab === 'board' ? 'var(--card)' : 'transparent', color: 'var(--text)' }}>Board</button>

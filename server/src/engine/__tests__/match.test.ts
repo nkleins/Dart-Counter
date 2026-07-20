@@ -178,6 +178,34 @@ describe('computeMatchState — Around the Clock als Leg-Typ', () => {
   });
 });
 
+describe('computeMatchState — 3-Dart-Ø (x01)', () => {
+  it('Ø = erzielte Punkte / Darts × 3; Nicht-Werfende haben 0', () => {
+    // A wirft T20 (60) und gewinnt das Leg in 1 Dart -> Ø 180; B wirft nichts -> 0.
+    const r = computeMatchState('x01', X01({ kind: 'casual' }), PLAYERS, [win('a')]);
+    expect(r.match.averages).toEqual({ a: 180, b: 0 });
+  });
+
+  it('Ø berücksichtigt auch Nicht-Sieg-Darts', () => {
+    // A: S20 (20, Rest 40) dann D20 (40 -> 0, Sieg). 60 Punkte in 2 Darts -> Ø 90.
+    const r = computeMatchState('x01', X01({ kind: 'casual' }), PLAYERS, [d('a', 20, 1), d('a', 20, 2)]);
+    expect(r.match.averages).toEqual({ a: 90, b: 0 });
+  });
+
+  it('Ø summiert über mehrere Legs', () => {
+    // singleSet: Leg1 A T20 (60/1 Dart). Leg2: A S20 (20) + D20 (Sieg).
+    // A gesamt: 120 Punkte in 3 Darts -> Ø 120.
+    const F = { kind: 'singleSet', legs: 3 };
+    const r = computeMatchState('x01', X01(F), PLAYERS, [d('a', 20, 3), d('a', 20, 1), d('a', 20, 2)]);
+    expect(r.match.legsWon).toEqual({ a: 2, b: 0 });
+    expect(r.match.averages).toEqual({ a: 120, b: 0 });
+  });
+
+  it('averages ist null bei Nicht-x01', () => {
+    const r = computeMatchState('cricket', { mode: 'standard', bull: false, format: { kind: 'casual' } }, PLAYERS, []);
+    expect(r.match.averages).toBe(null);
+  });
+});
+
 describe('computeMatchState — legNumber/setNumber', () => {
   const F = { kind: 'match', sets: 3, legs: 3 };
 
