@@ -4,12 +4,12 @@ import {
   getGameBySlug, addPlayer, listPlayers, listThrows, appendThrow, undoLastThrow, setStatus, extendGame, resetGame,
   removePlayer, countGamesExpiringAfter,
 } from '../repo.js';
-import { computeGameState } from '../engine/index.js';
+import { computeMatchState } from '../engine/match.js';
 import { buildGameView, toEngineInput, validGameConfig, GAME_TYPES } from './games.js';
 
 function computeCurrent(db: DB, gameId: number, gameType: 'x01' | 'cricket' | 'aroundTheClock', options: unknown) {
   const { engineIn, darts } = toEngineInput(listPlayers(db, gameId), listThrows(db, gameId));
-  return computeGameState(gameType, options, engineIn, darts);
+  return computeMatchState(gameType, options, engineIn, darts);
 }
 
 // Ab dieser Rest-Laufzeit gilt ein Spiel als „monatlich verlängert" (mehr als eine
@@ -23,8 +23,12 @@ export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug
     if (!game) return reply.code(404).send({ error: 'nicht gefunden' });
     const body = req.body as { name?: string; catchUp?: 'catchUp' | 'handicap' };
     if (!body?.name?.trim()) return reply.code(400).send({ error: 'name fehlt' });
+    const format = (game.options as { format?: { kind?: string } } | null)?.format;
+    if (game.status === 'running' && format && format.kind && format.kind !== 'casual') {
+      return reply.code(409).send({ error: 'Im Set-/Match-Modus können keine Spieler*innen nachträglich beitreten.' });
+    }
     const result = computeCurrent(db, game.id, game.gameType, game.options);
-    const joinedAtRound = game.status === 'running' ? result.state.round : 0;
+    const joinedAtRound = game.status === 'running' ? result.leg.state.round : 0;
     const player = addPlayer(db, game.id, { name: body.name.trim().slice(0, 14), joinedAtRound, catchUp: body.catchUp ?? 'handicap' });
     onChange(slug);
     return reply.code(201).send({ player });
@@ -41,7 +45,7 @@ export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug
     removePlayer(db, game.id, playerId);
     // Wie beim Undo: Status aus dem neuen Zustand herleiten (Sieg kann sich ändern).
     const after = computeCurrent(db, game.id, game.gameType, game.options);
-    setStatus(db, game.id, after.state.finished ? 'finished' : (listThrows(db, game.id).length > 0 ? 'running' : 'lobby'));
+    setStatus(db, game.id, after.match.finished ? 'finished' : (listThrows(db, game.id).length > 0 ? 'running' : 'lobby'));
     onChange(slug);
     return reply.send(buildGameView(db, getGameBySlug(db, slug)!));
   });
@@ -51,8 +55,8 @@ export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug
     const game = getGameBySlug(db, slug);
     if (!game) return reply.code(404).send({ error: 'nicht gefunden' });
     const before = computeCurrent(db, game.id, game.gameType, game.options);
-    if (before.state.finished) return reply.code(409).send({ error: 'Spiel beendet' });
-    const current = before.state.currentPlayerId;
+    if (before.match.finished) return reply.code(409).send({ error: 'Match beendet' });
+    const current = before.leg.state.currentPlayerId;
     if (!current) return reply.code(409).send({ error: 'kein aktiver Spieler' });
 
     const body = req.body as { segment?: number; multiplier?: number };
@@ -65,7 +69,7 @@ export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug
     appendThrow(db, game.id, { playerId: current, segment, multiplier });
 
     const after = computeCurrent(db, game.id, game.gameType, game.options);
-    if (after.state.finished) setStatus(db, game.id, 'finished');
+    if (after.match.finished) setStatus(db, game.id, 'finished');
     onChange(slug);
     const fresh = getGameBySlug(db, slug)!;
     return reply.send(buildGameView(db, fresh));
@@ -78,7 +82,7 @@ export function registerPlayRoutes(app: FastifyInstance, db: DB, onChange: (slug
     undoLastThrow(db, game.id);
     // Nach Undo ist das Spiel i.d.R. wieder laufend (Sieg zurückgenommen)
     const after = computeCurrent(db, game.id, game.gameType, game.options);
-    setStatus(db, game.id, after.state.finished ? 'finished' : (listThrows(db, game.id).length > 0 ? 'running' : 'lobby'));
+    setStatus(db, game.id, after.match.finished ? 'finished' : (listThrows(db, game.id).length > 0 ? 'running' : 'lobby'));
     onChange(slug);
     const fresh = getGameBySlug(db, slug)!;
     return reply.send(buildGameView(db, fresh));

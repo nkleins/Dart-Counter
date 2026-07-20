@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { GameType } from '../types.js';
+import type { GameType, MatchFormat } from '../types.js';
 
 type InOut = 'straight' | 'double' | 'master';
 
@@ -21,16 +21,23 @@ export function GameOptionsPicker({ onChange }: { onChange: (gameType: GameType,
   const [outRule, setOutRule] = useState<InOut>('double');
   const [cricketMode, setCricketMode] = useState<'standard' | 'cutthroat'>('standard');
   const [bull, setBull] = useState(true);
+  const [formatKind, setFormatKind] = useState<MatchFormat['kind']>('casual');
+  const [legs, setLegs] = useState<3 | 5 | 7>(3);
+  const [sets, setSets] = useState<3 | 5 | 7>(3);
 
   useEffect(() => {
+    const format: MatchFormat =
+      formatKind === 'singleSet' ? { kind: 'singleSet', legs } :
+      formatKind === 'match' ? { kind: 'match', sets, legs } :
+      { kind: 'casual' };
     const options: unknown =
-      gameType === 'x01' ? { start, in: inRule, out: outRule } :
-      gameType === 'cricket' ? { mode: cricketMode, bull } :
-      { advanceByMultiplier: true };
+      gameType === 'x01' ? { start, in: inRule, out: outRule, format } :
+      gameType === 'cricket' ? { mode: cricketMode, bull, format } :
+      { advanceByMultiplier: true, format };
     onChange(gameType, options);
     // Nur bei tatsächlicher Auswahl-Änderung neu melden (onChange bewusst nicht in den Deps).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameType, start, inRule, outRule, cricketMode, bull]);
+  }, [gameType, start, inRule, outRule, cricketMode, bull, formatKind, legs, sets]);
 
   return (
     <div>
@@ -63,6 +70,27 @@ export function GameOptionsPicker({ onChange }: { onChange: (gameType: GameType,
           <button style={pill(bull)} onClick={() => setBull((b) => !b)}>Bull {bull ? 'an' : 'aus'}</button>
         </div>
       )}
+
+      <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+        <div style={{ fontSize: 12, color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 9 }}>Format</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: formatKind === 'casual' ? 0 : 10 }}>
+          {([['casual', 'Casual'], ['singleSet', 'Single Set'], ['match', 'Match']] as [MatchFormat['kind'], string][]).map(([k, label]) => (
+            <button key={k} style={pill(formatKind === k)} onClick={() => setFormatKind(k)}>{label}</button>
+          ))}
+        </div>
+        {(formatKind === 'singleSet' || formatKind === 'match') && (
+          <div style={{ display: 'flex', gap: 7, marginBottom: formatKind === 'match' ? 8 : 0, flexWrap: 'wrap' }}>
+            <span style={{ alignSelf: 'center', fontSize: 12, color: 'var(--muted)' }}>Best of</span>
+            {([3, 5, 7] as const).map((n) => <button key={n} style={pill(legs === n)} onClick={() => setLegs(n)}>{n} Legs</button>)}
+          </div>
+        )}
+        {formatKind === 'match' && (
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+            <span style={{ alignSelf: 'center', fontSize: 12, color: 'var(--muted)' }}>Best of</span>
+            {([3, 5, 7] as const).map((n) => <button key={n} style={pill(sets === n)} onClick={() => setSets(n)}>{n} Sets</button>)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

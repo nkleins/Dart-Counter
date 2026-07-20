@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Keypad } from '../components/Keypad.js';
 
@@ -23,6 +23,14 @@ describe('Keypad', () => {
     const onThrow = vi.fn();
     render(<Keypad onThrow={onThrow} />);
     await userEvent.click(screen.getByRole('button', { name: 'Miss' }));
+    expect(onThrow).toHaveBeenCalledWith({ segment: 0, multiplier: 0 });
+  });
+  it('Miss-Button bekommt beim Antippen die Flash-Klasse', () => {
+    const onThrow = vi.fn();
+    const { getByText } = render(<Keypad onThrow={onThrow} />);
+    const miss = getByText('Miss');
+    fireEvent.click(miss);
+    expect(miss.className).toContain('dart-flash');
     expect(onThrow).toHaveBeenCalledWith({ segment: 0, multiplier: 0 });
   });
 });

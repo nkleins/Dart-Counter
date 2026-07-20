@@ -22,7 +22,7 @@ describe('FinishActions', () => {
     await userEvent.click(screen.getByRole('button', { name: '301' }));
     await userEvent.click(screen.getByRole('button', { name: 'Out: master' }));
     await userEvent.click(screen.getByRole('button', { name: /Neues Spiel starten/ }));
-    expect(onChangeMode).toHaveBeenCalledWith('x01', { start: 301, in: 'straight', out: 'master' });
+    expect(onChangeMode).toHaveBeenCalledWith('x01', { start: 301, in: 'straight', out: 'master', format: { kind: 'casual' } });
   });
 
   it('Modus wechseln zu Cricket Cut-Throat', async () => {
@@ -32,6 +32,6 @@ describe('FinishActions', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cricket' }));
     await userEvent.click(screen.getByRole('button', { name: 'Cut-Throat' }));
     await userEvent.click(screen.getByRole('button', { name: /Neues Spiel starten/ }));
-    expect(onChangeMode).toHaveBeenCalledWith('cricket', { mode: 'cutthroat', bull: true });
+    expect(onChangeMode).toHaveBeenCalledWith('cricket', { mode: 'cutthroat', bull: true, format: { kind: 'casual' } });
   });
 });

@@ -11,6 +11,7 @@ export function HistoryTab({ view, onJoin, onRemove, onExtend, onHome }: {
   const [name, setName] = useState('');
   const [catchUp, setCatchUp] = useState<'catchUp' | 'handicap'>('catchUp');
   const running = view.status === 'running';
+  const joinLocked = running && view.match.format.kind !== 'casual';
 
   const nameOf = (id: string) => view.players.find((p: PlayerMeta) => p.id === id)?.name ?? id;
   const label = (seg: number, mul: number) => seg === 0 ? 'Miss' : seg === 25 ? (mul === 2 ? 'Bull(50)' : 'Bull(25)') : `${['', 'S', 'D', 'T'][mul]}${seg}`;
@@ -41,13 +42,16 @@ export function HistoryTab({ view, onJoin, onRemove, onExtend, onHome }: {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <input placeholder="Name…" value={name} maxLength={14}
+          <input placeholder="Name…" value={name} maxLength={14} disabled={joinLocked}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
-            style={{ flex: 1, background: '#141922', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 12px', color: 'var(--text)' }} />
-          <button onClick={add} style={{ ...chip, padding: '0 16px' }}>+ Add</button>
+            style={{ flex: 1, background: '#141922', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 12px', color: 'var(--text)', opacity: joinLocked ? 0.5 : 1 }} />
+          <button onClick={add} disabled={joinLocked} style={{ ...chip, padding: '0 16px', opacity: joinLocked ? 0.5 : 1 }}>+ Add</button>
         </div>
-        {running && (
+        {joinLocked && (
+          <p style={{ fontSize: 12, color: 'var(--muted)', margin: '8px 0 0' }}>Im Set-/Match-Modus können keine Spieler*innen nachträglich beitreten.</p>
+        )}
+        {running && !joinLocked && (
           <div style={{ display: 'flex', gap: 7, marginTop: 8 }}>
             {(['catchUp', 'handicap'] as const).map((c) => {
               const on = catchUp === c;

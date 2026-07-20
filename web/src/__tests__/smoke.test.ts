@@ -7,6 +7,7 @@ describe('types', () => {
       slug: 'x', gameType: 'x01', options: {}, status: 'lobby', createdAt: 0, expiresAt: 0,
       players: [], state: { currentPlayerId: null, round: 1, dartsThrownThisTurn: 0, finished: false, winnerId: null, players: [] } as never,
       history: [],
+      match: { format: { kind: 'casual' }, legsWon: {}, setsWon: {}, legNumber: 1, setNumber: 1, legWinnerId: null, setWinnerId: null, matchWinnerId: null, finished: false },
     };
     expect(v.slug).toBe('x');
   });

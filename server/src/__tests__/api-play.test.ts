@@ -153,4 +153,73 @@ describe('API: Spielen', () => {
     expect(res.statusCode).toBe(409);
     await app.close();
   });
+
+  // Brief-Testdaten nutzten `start: 60`, was die bestehende X01_STARTS-Validierung
+  // ([301, 501, 701], server/src/api/games.ts, außerhalb dieses Tasks) mit 400
+  // ablehnt -> Spiel wird nie angelegt, Würfe laufen ins Leere (404). Ersetzt durch
+  // einen validen Start (301) mit einer deterministischen 9-Wurf-Sequenz, die exakt
+  // dieselbe Leg-/Match-Dynamik erzeugt: der Leg-Startspieler wirft Turn 1
+  // (T20,T20,T20 = 180) und Turn 3 (T20,T20,Safe = 121), zusammen 180+121 = 301,
+  // und gewinnt damit an Dart 9 (straight-out). Turn 2 (Safe,Safe,Safe) geht auf das
+  // Konto des jeweils anderen Spielers -- die 9 Würfe verteilen sich also auf zwei
+  // getrennte Spieler-Konten, unabhängig davon, ob Mia oder Ben laut Rotation beginnt.
+  const T20 = { segment: 20, multiplier: 3 };
+  const SAFE = { segment: 1, multiplier: 1 };
+  const throwDart = (app: ReturnType<typeof buildApp>, slug: string, dart: { segment: number; multiplier: number }) =>
+    app.inject({ method: 'POST', url: `/api/games/${slug}/throws`, payload: dart });
+  async function playLegSequence(app: ReturnType<typeof buildApp>, slug: string) {
+    const seq = [T20, T20, T20, SAFE, SAFE, SAFE, T20, T20, SAFE];
+    let last;
+    for (const d of seq) last = await throwDart(app, slug, d);
+    return last!;
+  }
+
+  it('Wurf nach beendetem LEG (aber laufendem Match) wird angenommen', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const create = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 301, in: 'straight', out: 'straight', format: { kind: 'singleSet', legs: 3 } }, players: ['Mia', 'Ben'] },
+    });
+    const slug = create.json().slug;
+    // Mia (Start) gewinnt Leg 1 nach der 9-Wurf-Sequenz
+    const w1 = await playLegSequence(app, slug);
+    expect(w1.statusCode).toBe(200);
+    expect(w1.json().match.legWinnerId).not.toBe(null);
+    expect(w1.json().match.finished).toBe(false);
+    // Nächster Wurf startet Leg 2 -> muss angenommen werden
+    const w2 = await throwDart(app, slug, SAFE);
+    expect(w2.statusCode).toBe(200);
+    expect(w2.json().match.legWinnerId).toBe(null);
+    await app.close();
+  });
+
+  it('Wurf nach beendetem MATCH -> 409', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const create = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 301, in: 'straight', out: 'straight', format: { kind: 'singleSet', legs: 3 } }, players: ['Mia', 'Ben'] },
+    });
+    const slug = create.json().slug;
+    await playLegSequence(app, slug); // Leg1 (Start Mia) -> Mia gewinnt
+    await playLegSequence(app, slug); // Leg2 (Start Ben) -> Ben gewinnt
+    await playLegSequence(app, slug); // Leg3 (Start Mia) -> Mia gewinnt -> Mia 2 Legs -> Match aus
+    const finished = await app.inject({ method: 'GET', url: `/api/games/${slug}` });
+    expect(finished.json().match.finished).toBe(true);
+    const extra = await throwDart(app, slug, SAFE);
+    expect(extra.statusCode).toBe(409);
+    await app.close();
+  });
+
+  it('Spieler-Beitritt im Set/Match-Modus -> 409', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const create = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 501, in: 'straight', out: 'straight', format: { kind: 'singleSet', legs: 3 } }, players: ['Mia', 'Ben'] },
+    });
+    const slug = create.json().slug;
+    await app.inject({ method: 'POST', url: `/api/games/${slug}/throws`, payload: { segment: 1, multiplier: 1 } }); // running
+    const join = await app.inject({ method: 'POST', url: `/api/games/${slug}/players`, payload: { name: 'Lena', catchUp: 'catchUp' } });
+    expect(join.statusCode).toBe(409);
+    await app.close();
+  });
 });

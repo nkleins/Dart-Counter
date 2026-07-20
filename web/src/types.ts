@@ -14,10 +14,28 @@ export interface AtcState { currentPlayerId: string | null; round: number; darts
 
 export type AnyState = X01State | CricketState | AtcState;
 
+export type MatchFormat =
+  | { kind: 'casual' }
+  | { kind: 'singleSet'; legs: 3 | 5 | 7 }
+  | { kind: 'match'; sets: 3 | 5 | 7; legs: 3 | 5 | 7 };
+
+export interface MatchSummary {
+  format: MatchFormat;
+  legsWon: Record<string, number>;
+  setsWon: Record<string, number>;
+  legNumber: number;
+  setNumber: number;
+  legWinnerId: string | null;
+  setWinnerId: string | null;
+  matchWinnerId: string | null;
+  finished: boolean;
+}
+
 export interface GameView {
   slug: string; gameType: GameType; options: unknown; status: 'lobby' | 'running' | 'finished';
   createdAt: number; expiresAt: number;
   players: PlayerMeta[];
   state: AnyState;
+  match: MatchSummary;
   history: { seq: number; playerId: string; segment: number; multiplier: number; round: number; dartNo: number; catchUp: boolean }[];
 }

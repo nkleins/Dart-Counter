@@ -33,7 +33,7 @@ export function Keypad({ onThrow, checkout = null }: { onThrow: (dart: Dart) => 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-        <div style={{ flex: 1 }}><Multiplier value={mul} onChange={onMul} /></div>
+        <div style={{ flex: 1 }}><Multiplier value={mul} onChange={onMul} miss={flash === 'miss'} /></div>
         <button onClick={toggleCheckout} title="Checkout-Vorschläge an/aus"
           style={{ height: 25, padding: '0 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
             background: showCheckout ? 'var(--amber)' : 'var(--card)', color: showCheckout ? '#221803' : '#c5d0e0',

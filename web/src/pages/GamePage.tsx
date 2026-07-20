@@ -9,6 +9,7 @@ import { AtcBoard } from '../components/boards/AtcBoard.js';
 import { SharePanel } from '../components/SharePanel.js';
 import { WinPopup } from '../components/WinPopup.js';
 import { FinishActions } from '../components/FinishActions.js';
+import { LegBanner } from '../components/LegBanner.js';
 import type { GameType, PlayerMeta, X01State, CricketState, AtcState } from '../types.js';
 
 export function GamePage() {
@@ -24,7 +25,7 @@ export function GamePage() {
 
   return (
     <div style={{ maxWidth: 400, margin: '0 auto', padding: 16 }}>
-      <TurnBar name={nameOf(view.state.currentPlayerId)} dartsThrownThisTurn={view.state.dartsThrownThisTurn} dartsThisTurnTotal={view.state.dartsThisTurnTotal} onUndo={undo} />
+      <TurnBar name={nameOf(view.state.currentPlayerId)} dartsThrownThisTurn={view.state.dartsThrownThisTurn} dartsThisTurnTotal={view.state.dartsThisTurnTotal} onUndo={undo} match={view.match} players={view.players} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <button onClick={() => setTab('board')} style={{ flex: 1, padding: 8, borderRadius: 8, border: '1px solid var(--border)', background: tab === 'board' ? 'var(--card)' : 'transparent', color: 'var(--text)' }}>Board</button>
@@ -39,7 +40,22 @@ export function GamePage() {
 
       {view.status === 'lobby' && <SharePanel slug={view.slug} />}
 
-      {view.state.finished && view.state.winnerId && (
+      {view.match.legWinnerId && !view.match.finished && (
+        view.match.setWinnerId ? (
+          <LegBanner
+            label="Set an"
+            winnerName={nameOf(view.match.setWinnerId)}
+            legsText={`Sets ${view.players.map((p) => view.match.setsWon[p.id] ?? 0).join(view.players.length === 2 ? '–' : '·')}`}
+          />
+        ) : (
+          <LegBanner
+            winnerName={nameOf(view.match.legWinnerId)}
+            legsText={`Legs ${view.players.map((p) => view.match.legsWon[p.id] ?? 0).join(view.players.length === 2 ? '–' : '·')}`}
+          />
+        )
+      )}
+
+      {view.match.finished && view.match.matchWinnerId && (
         <FinishActions
           onRestart={() => { setShowWin(true); setTab('board'); reset(); }}
           onChangeMode={(gameType: GameType, options: unknown) => { setShowWin(true); setTab('board'); reset({ gameType, options }); }}
@@ -47,9 +63,9 @@ export function GamePage() {
         />
       )}
 
-      {view.state.finished && view.state.winnerId && showWin && (
+      {view.match.finished && view.match.matchWinnerId && showWin && (
         <WinPopup
-          winnerName={view.players.find((p) => p.id === view.state.winnerId)?.name ?? '—'}
+          winnerName={nameOf(view.match.matchWinnerId)}
           onUndo={() => { setShowWin(true); undo(); }}
           onClose={() => setShowWin(false)}
         />

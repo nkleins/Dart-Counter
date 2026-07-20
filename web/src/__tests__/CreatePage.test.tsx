@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { CreatePage } from '../pages/CreatePage.js';
+import { GameOptionsPicker } from '../components/GameOptionsPicker.js';
 import * as api from '../api.js';
 
 const nav = vi.fn();
@@ -19,5 +20,25 @@ describe('CreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: /spiel erstellen/i }));
     expect(api.createGame).toHaveBeenCalledWith(expect.objectContaining({ gameType: 'x01', players: ['Mia'] }));
     expect(nav).toHaveBeenCalledWith('/g/abc');
+  });
+});
+
+describe('GameOptionsPicker Format', () => {
+  it('Format: Single Set zeigt Leg-Unter-Buttons und meldet legs im Format', () => {
+    const onChange = vi.fn();
+    const { getByText } = render(<GameOptionsPicker onChange={onChange} />);
+    fireEvent.click(getByText('Single Set'));
+    // Unter-Buttons erscheinen
+    fireEvent.click(getByText('7 Legs'));
+    const last = onChange.mock.calls.at(-1)!;
+    const opts = last[1] as { format: { kind: string; legs: number } };
+    expect(opts.format).toEqual({ kind: 'singleSet', legs: 7 });
+  });
+
+  it('Format: Casual ist Default', () => {
+    const onChange = vi.fn();
+    render(<GameOptionsPicker onChange={onChange} />);
+    const first = onChange.mock.calls[0]!;
+    expect((first[1] as { format: { kind: string } }).format).toEqual({ kind: 'casual' });
   });
 });

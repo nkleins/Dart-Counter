@@ -1,18 +1,32 @@
 import type { FastifyInstance } from 'fastify';
 import type { DB } from '../db.js';
 import { createGame, getGameBySlug, addPlayer, listPlayers, listThrows, countActiveGames, type GameRow, type PlayerRow, type EventRow } from '../repo.js';
-import { computeGameState } from '../engine/index.js';
+import { computeMatchState } from '../engine/match.js';
 import { groupTurns } from '../engine/turns.js';
-import type { PlayerInput, PlayerDart, X01InOut } from '../engine/types.js';
+import type { PlayerInput, PlayerDart, X01InOut, MatchSummary } from '../engine/types.js';
 
 export const GAME_TYPES = ['x01', 'cricket', 'aroundTheClock'] as const;
 const X01_STARTS = [301, 501, 701];
 const X01_IN_OUT: X01InOut[] = ['straight', 'double', 'master'];
 const CRICKET_MODES = ['standard', 'cutthroat'];
+const BEST_OF = [3, 5, 7];
+
+/** Validiert das optionale `options.format`. Fehlt es, gilt casual. */
+function validFormat(format: unknown): boolean {
+  if (format === undefined) return true;
+  const f = format as Record<string, unknown>;
+  switch (f.kind) {
+    case 'casual': return true;
+    case 'singleSet': return BEST_OF.includes(f.legs as number);
+    case 'match': return BEST_OF.includes(f.sets as number) && BEST_OF.includes(f.legs as number);
+    default: return false;
+  }
+}
 
 /** Minimalvalidierung der Spieloptionen, damit die Engine keinen NaN-Müll erzeugt. */
 export function validGameConfig(gameType: string, options: unknown): boolean {
   const o = (options ?? {}) as Record<string, unknown>;
+  if (!validFormat(o.format)) return false;
   switch (gameType) {
     case 'x01':
       return X01_STARTS.includes(o.start as number) &&
@@ -43,6 +57,7 @@ export interface GameView {
   createdAt: number; expiresAt: number;
   players: { id: string; name: string; order: number; joinedAtRound: number; catchUp: string }[];
   state: unknown;
+  match: MatchSummary;
   history: { seq: number; playerId: string; segment: number; multiplier: number; round: number; dartNo: number; catchUp: boolean }[];
 }
 
@@ -50,7 +65,7 @@ export function buildGameView(db: DB, game: GameRow): GameView {
   const players = listPlayers(db, game.id);
   const history = listThrows(db, game.id);
   const { engineIn, darts } = toEngineInput(players, history);
-  const result = computeGameState(game.gameType, game.options, engineIn, darts);
+  const { leg, match } = computeMatchState(game.gameType, game.options, engineIn, darts);
 
   // Runde + Wurfnummer je Wurf für die Verlaufsanzeige herleiten.
   // Aufhol-Spieler*innen werfen ihren Erstzug als „Aufholrunde"; danach knüpfen
@@ -80,7 +95,7 @@ export function buildGameView(db: DB, game: GameRow): GameView {
   return {
     slug: game.slug, gameType: game.gameType, options: game.options, status: game.status,
     createdAt: game.createdAt, expiresAt: game.expiresAt,
-    players, state: result.state, history: historyView,
+    players, state: leg.state, match, history: historyView,
   };
 }
 

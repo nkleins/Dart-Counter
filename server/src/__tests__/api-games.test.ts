@@ -70,6 +70,36 @@ describe('API: Spiele', () => {
     expect(res2.statusCode).toBe(400);
     await app.close();
   });
+
+  it('akzeptiert ein gültiges match-Format', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const res = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 501, in: 'straight', out: 'double', format: { kind: 'match', sets: 3, legs: 5 } }, players: ['A'] },
+    });
+    expect(res.statusCode).toBe(201);
+    await app.close();
+  });
+
+  it('lehnt ein ungültiges Format ab (legs = 4)', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const res = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 501, in: 'straight', out: 'double', format: { kind: 'singleSet', legs: 4 } }, players: ['A'] },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it('fehlendes Format ist erlaubt (= casual)', async () => {
+    const app = buildApp(openDb(':memory:'));
+    const res = await app.inject({
+      method: 'POST', url: '/api/games',
+      payload: { gameType: 'x01', options: { start: 501, in: 'straight', out: 'double' }, players: ['A'] },
+    });
+    expect(res.statusCode).toBe(201);
+    await app.close();
+  });
 });
 
 describe('API: globaler Deckel', () => {
