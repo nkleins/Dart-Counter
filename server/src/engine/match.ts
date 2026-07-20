@@ -2,6 +2,13 @@ import type { GameType, PlayerDart, PlayerInput, MatchFormat, MatchSummary } fro
 import { computeGameState, type GameStateResult } from './index.js';
 import type { X01State } from './x01.js';
 
+/** Ein Leg-Abschnitt der flachen Wurfliste (für die nach Leg/Set gruppierte Verlaufsansicht). */
+export interface LegSegment {
+  setNumber: number;   // 1-basiert
+  legInSet: number;    // Leg-Nummer innerhalb des Sets (1-basiert)
+  dartCount: number;   // Anzahl Darts dieses Legs in der flachen Liste
+}
+
 /** Liest ein gültiges Format aus den Optionen; fehlt/ungültig → casual. */
 function readFormat(options: unknown): MatchFormat {
   const f = (options as { format?: unknown } | null | undefined)?.format as Record<string, unknown> | undefined;
@@ -44,7 +51,7 @@ export function computeMatchState(
   options: unknown,
   players: PlayerInput[],
   darts: PlayerDart[],
-): { leg: GameStateResult; match: MatchSummary } {
+): { leg: GameStateResult; match: MatchSummary; segments: LegSegment[] } {
   const format = readFormat(options);
   const sorted = [...players].sort((a, b) => a.order - b.order);
   const legsWon: Record<string, number> = {};
@@ -66,6 +73,9 @@ export function computeMatchState(
   let matchWinnerId: string | null = null;
   let lastLegWinnerId: string | null = null;
   let lastLegWonSet = false;
+  const segments: LegSegment[] = [];
+  let segSet = 1;   // laufende Set-/Leg-Nummer für die Segmentierung
+  let segLeg = 1;
   // Init: frisches Leg 1 (falls noch keine Würfe / nur bis zur Leg-Grenze gespielt).
   let leg: GameStateResult = computeGameState(gameType, options, rotatePlayers(sorted, 0), []);
 
@@ -85,6 +95,7 @@ export function computeMatchState(
 
     const w = res.state.winnerId as string;
     const consumed = legEnd(gameType, options, rotated, slice);
+    segments.push({ setNumber: segSet, legInSet: segLeg, dartCount: consumed });
     lastLegWonSet = false;
     legsWon[w]! += 1;
     lastLegWinnerId = w;
@@ -107,6 +118,10 @@ export function computeMatchState(
     if (matchWinnerId) {
       // Finales Leg als Board zeigen (die Aufnahme, die entschieden hat).
       leg = computeGameState(gameType, options, rotated, darts.slice(offset - consumed));
+    } else if (lastLegWonSet) {
+      segSet += 1; segLeg = 1; // nächstes Set
+    } else {
+      segLeg += 1;             // nächstes Leg im selben Set
     }
   }
 
@@ -114,6 +129,10 @@ export function computeMatchState(
   // nächstes Leg zeigen + Banner (legWinnerId) setzen.
   if (!matchWinnerId && offset >= darts.length && lastLegWinnerId !== null) {
     leg = computeGameState(gameType, options, rotatePlayers(sorted, legIndex), []);
+  }
+  // Laufendes Leg (noch nicht beendet) als eigenes Segment für die Verlaufsansicht.
+  if (offset < darts.length) {
+    segments.push({ setNumber: segSet, legInSet: segLeg, dartCount: darts.length - offset });
   }
 
   const finished = matchWinnerId !== null;
@@ -141,5 +160,5 @@ export function computeMatchState(
     finished,
     averages,
   };
-  return { leg, match };
+  return { leg, match, segments };
 }

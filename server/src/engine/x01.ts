@@ -20,6 +20,7 @@ export interface X01State {
   winnerId: string | null;
   players: X01PlayerState[];
   checkout: string[] | null; // Vorschlag für den aktuellen Spieler (falls Finish in Reichweite)
+  turnPoints: number;        // in der laufenden Aufnahme erzielte Punkte der aktiven Person (0 wenn keine läuft)
 }
 
 export function computeX01State(
@@ -42,6 +43,8 @@ export function computeX01State(
   const turns = groupTurns(darts, firstTurnDarts);
   let winnerId: string | null = null;
   let lastTurnComplete = true;
+  let lastStartRemaining = 0; // Rest zu Beginn der letzten (evtl. laufenden) Aufnahme
+  let lastEndRemaining = 0;   // Rest danach – Differenz = Punkte dieser Aufnahme
 
   for (let i = 0; i < turns.length; i++) {
     const turn = turns[i]!;
@@ -88,7 +91,11 @@ export function computeX01State(
       state.opened = opened;
       if (wonThisTurn) { state.finished = true; winnerId = turn.playerId; }
     }
-    if (i === turns.length - 1) lastTurnComplete = busted || wonThisTurn || turn.darts.length >= turn.cap;
+    if (i === turns.length - 1) {
+      lastTurnComplete = busted || wonThisTurn || turn.darts.length >= turn.cap;
+      lastStartRemaining = startRemaining;
+      lastEndRemaining = state.remaining;
+    }
   }
 
   const players_out = order.map((id) => ps.get(id)!);
@@ -96,5 +103,8 @@ export function computeX01State(
   const cur = pub.currentPlayerId ? ps.get(pub.currentPlayerId) : null;
   const dartsLeft = pub.dartsThisTurnTotal - pub.dartsThrownThisTurn;
   const checkout = cur && cur.opened ? suggestCheckout(cur.remaining, dartsLeft, options.out) : null;
-  return { ...pub, finished: winnerId !== null, winnerId, players: players_out, checkout };
+  // Punkte der laufenden Aufnahme: nur wenn die letzte Aufnahme noch offen ist
+  // (nach Zug-Ende/Bust/Sieg ist die nächste Person mit 0 dran).
+  const turnPoints = !lastTurnComplete && turns.length > 0 ? lastStartRemaining - lastEndRemaining : 0;
+  return { ...pub, finished: winnerId !== null, winnerId, players: players_out, checkout, turnPoints };
 }

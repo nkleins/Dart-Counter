@@ -121,6 +121,33 @@ describe('computeX01State — Undo als reine Funktion', () => {
   });
 });
 
+describe('computeX01State — Aufnahme-Punkte (turnPoints)', () => {
+  it('laufende Aufnahme summiert die Punkte der aktiven Person', () => {
+    // A: T20 (60) + S20 (20) -> 2/3 Darts, Aufnahme läuft -> turnPoints 80
+    const s = computeX01State(OPTS, PLAYERS, [d('a', 20, 3), d('a', 20, 1)]);
+    expect(s.turnPoints).toBe(80);
+    expect(s.currentPlayerId).toBe('a');
+  });
+
+  it('nach abgeschlossener Aufnahme (3 Darts) ist die nächste Person mit 0 dran', () => {
+    const s = computeX01State(OPTS, PLAYERS, [d('a', 20, 3), d('a', 20, 3), d('a', 20, 3)]);
+    expect(s.currentPlayerId).toBe('b');
+    expect(s.turnPoints).toBe(0);
+  });
+
+  it('Bust setzt die Aufnahme-Punkte zurück (0)', () => {
+    const o: X01Options = { start: 50, in: 'straight', out: 'straight' };
+    const s = computeX01State(o, PLAYERS, [d('a', 20, 3)]); // 60 > 50 -> Bust
+    expect(s.turnPoints).toBe(0);
+    expect(s.currentPlayerId).toBe('b');
+  });
+
+  it('leeres Spiel: turnPoints 0', () => {
+    const s = computeX01State(OPTS, PLAYERS, []);
+    expect(s.turnPoints).toBe(0);
+  });
+});
+
 describe('computeX01State — Aufholen (firstTurnDarts)', () => {
   it('Aufhol-Spieler wirft 6 Darts in einem Zug', () => {
     const players: PlayerInput[] = [

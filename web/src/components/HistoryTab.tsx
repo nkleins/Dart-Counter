@@ -40,6 +40,16 @@ export function HistoryTab({ view, onJoin, onRemove, onExtend, onHome }: {
   const colNum: React.CSSProperties = { width: 40, textAlign: 'right', fontWeight: 700 };
   const colHead: React.CSSProperties = { width: 40, textAlign: 'right' };
 
+  // Verlauf nach Leg/Set gruppieren (bei Casual bleibt es eine flache Liste).
+  const grouped = fmt.kind !== 'casual';
+  const legHeader = (set: number, leg: number) => fmt.kind === 'match' ? `Set ${set} · Leg ${leg}` : `Leg ${leg}`;
+  const histGroups: { set: number; leg: number; entries: typeof view.history }[] = [];
+  for (const e of view.history) {
+    const last = histGroups[histGroups.length - 1];
+    if (last && last.set === e.set && last.leg === e.leg) last.entries.push(e);
+    else histGroups.push({ set: e.set, leg: e.leg, entries: [e] });
+  }
+
   return (
     <div>
       {/* — Standings — */}
@@ -128,14 +138,23 @@ export function HistoryTab({ view, onJoin, onRemove, onExtend, onHome }: {
         </p>
       </section>
 
-      {/* — Verlauf — */}
+      {/* — Verlauf (nach Set/Leg gruppiert, neueste zuerst) — */}
       <section>
         <h3 style={heading}>Verlauf</h3>
-        {[...view.history].reverse().map((e) => (
-          <div key={e.seq} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 4px', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-            <span style={{ color: e.catchUp ? 'var(--amber)' : 'var(--muted)', flex: '0 0 auto' }}>{e.catchUp ? 'Aufholrunde' : `Runde ${e.round}`} · Wurf {e.dartNo}</span>
-            <span style={{ flex: 1, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nameOf(e.playerId)}</span>
-            <span style={{ fontWeight: 700, flex: '0 0 auto', minWidth: 44, textAlign: 'right' }}>{label(e.segment, e.multiplier)}</span>
+        {histGroups.slice().reverse().map((g) => (
+          <div key={`${g.set}-${g.leg}`}>
+            {grouped && (
+              <div style={{ fontSize: 11, color: 'var(--amber)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, margin: '12px 0 4px' }}>
+                {legHeader(g.set, g.leg)}
+              </div>
+            )}
+            {g.entries.slice().reverse().map((e) => (
+              <div key={e.seq} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 4px', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+                <span style={{ color: e.catchUp ? 'var(--amber)' : 'var(--muted)', flex: '0 0 auto' }}>{e.catchUp ? 'Aufholrunde' : `Runde ${e.round}`} · Wurf {e.dartNo}</span>
+                <span style={{ flex: 1, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nameOf(e.playerId)}</span>
+                <span style={{ fontWeight: 700, flex: '0 0 auto', minWidth: 44, textAlign: 'right' }}>{label(e.segment, e.multiplier)}</span>
+              </div>
+            ))}
           </div>
         ))}
         {view.history.length === 0 && <p style={{ color: 'var(--muted)', textAlign: 'center' }}>Noch keine Würfe.</p>}

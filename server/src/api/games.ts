@@ -58,39 +58,44 @@ export interface GameView {
   players: { id: string; name: string; order: number; joinedAtRound: number; catchUp: string }[];
   state: unknown;
   match: MatchSummary;
-  history: { seq: number; playerId: string; segment: number; multiplier: number; round: number; dartNo: number; catchUp: boolean }[];
+  history: { seq: number; playerId: string; segment: number; multiplier: number; round: number; dartNo: number; catchUp: boolean; set: number; leg: number }[];
 }
 
 export function buildGameView(db: DB, game: GameRow): GameView {
   const players = listPlayers(db, game.id);
   const history = listThrows(db, game.id);
   const { engineIn, darts } = toEngineInput(players, history);
-  const { leg, match } = computeMatchState(game.gameType, game.options, engineIn, darts);
+  const { leg, match, segments } = computeMatchState(game.gameType, game.options, engineIn, darts);
 
-  // Runde + Wurfnummer je Wurf für die Verlaufsanzeige herleiten.
-  // Aufhol-Spieler*innen werfen ihren Erstzug als „Aufholrunde"; danach knüpfen
-  // ihre Runden an die der anderen an (Start bei joinedAtRound + 1).
+  // Runde + Wurfnummer je Wurf für die Verlaufsanzeige herleiten, PRO LEG (Segment):
+  // die Runde wird je Leg zurückgesetzt, damit der nach Set/Leg gruppierte Verlauf sauber
+  // zählt. Aufhol-Spieler*innen werfen ihren Erstzug als „Aufholrunde" (nur casual/1 Leg).
   const firstTurnDarts = new Map<string, number>();
   for (const p of players) { const f = firstTurnDartsFor(p); if (f) firstTurnDarts.set(p.id, f); }
   const playerById = new Map(players.map((p) => [p.id, p]));
-  const turnMeta: { round: number; dartNo: number; catchUp: boolean }[] = [];
-  const roundCount = new Map<string, number>();
-  const seenFirstTurn = new Set<string>();
-  for (const turn of groupTurns(darts, firstTurnDarts)) {
-    const p = playerById.get(turn.playerId);
-    const isCatchUpTurn = !seenFirstTurn.has(turn.playerId) && !!p && p.catchUp === 'catchUp' && p.joinedAtRound > 0;
-    seenFirstTurn.add(turn.playerId);
-    if (isCatchUpTurn) {
-      // Aufholrunde – danach an die Runde der anderen anknüpfen.
-      roundCount.set(turn.playerId, p!.joinedAtRound);
-      turn.darts.forEach((_, i) => turnMeta.push({ round: p!.joinedAtRound, dartNo: i + 1, catchUp: true }));
-    } else {
-      const round = (roundCount.get(turn.playerId) ?? 0) + 1;
-      roundCount.set(turn.playerId, round);
-      turn.darts.forEach((_, i) => turnMeta.push({ round, dartNo: i + 1, catchUp: false }));
+  const turnMeta: { round: number; dartNo: number; catchUp: boolean; set: number; leg: number }[] = [];
+  let segStart = 0;
+  for (const seg of segments) {
+    const legDarts = darts.slice(segStart, segStart + seg.dartCount);
+    segStart += seg.dartCount;
+    const roundCount = new Map<string, number>();
+    const seenFirstTurn = new Set<string>();
+    for (const turn of groupTurns(legDarts, firstTurnDarts)) {
+      const p = playerById.get(turn.playerId);
+      const isCatchUpTurn = !seenFirstTurn.has(turn.playerId) && !!p && p.catchUp === 'catchUp' && p.joinedAtRound > 0;
+      seenFirstTurn.add(turn.playerId);
+      if (isCatchUpTurn) {
+        // Aufholrunde – danach an die Runde der anderen anknüpfen.
+        roundCount.set(turn.playerId, p!.joinedAtRound);
+        turn.darts.forEach((_, i) => turnMeta.push({ round: p!.joinedAtRound, dartNo: i + 1, catchUp: true, set: seg.setNumber, leg: seg.legInSet }));
+      } else {
+        const round = (roundCount.get(turn.playerId) ?? 0) + 1;
+        roundCount.set(turn.playerId, round);
+        turn.darts.forEach((_, i) => turnMeta.push({ round, dartNo: i + 1, catchUp: false, set: seg.setNumber, leg: seg.legInSet }));
+      }
     }
   }
-  const historyView = history.map((e, i) => ({ ...e, round: turnMeta[i]?.round ?? 1, dartNo: turnMeta[i]?.dartNo ?? 1, catchUp: turnMeta[i]?.catchUp ?? false }));
+  const historyView = history.map((e, i) => ({ ...e, round: turnMeta[i]?.round ?? 1, dartNo: turnMeta[i]?.dartNo ?? 1, catchUp: turnMeta[i]?.catchUp ?? false, set: turnMeta[i]?.set ?? 1, leg: turnMeta[i]?.leg ?? 1 }));
 
   return {
     slug: game.slug, gameType: game.gameType, options: game.options, status: game.status,

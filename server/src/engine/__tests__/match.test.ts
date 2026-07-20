@@ -178,6 +178,36 @@ describe('computeMatchState — Around the Clock als Leg-Typ', () => {
   });
 });
 
+describe('computeMatchState — Segmente (Verlauf)', () => {
+  it('casual: ein Segment über alle Darts', () => {
+    const r = computeMatchState('x01', X01({ kind: 'casual' }), PLAYERS, [d('a', 20, 1), d('a', 20, 1)]);
+    expect(r.segments).toEqual([{ setNumber: 1, legInSet: 1, dartCount: 2 }]);
+  });
+
+  it('singleSet: je Leg ein Segment inkl. laufendem Leg', () => {
+    const r = computeMatchState('x01', X01({ kind: 'singleSet', legs: 3 }), PLAYERS, [win('a'), d('b', 1, 1)]);
+    expect(r.segments).toEqual([
+      { setNumber: 1, legInSet: 1, dartCount: 1 },
+      { setNumber: 1, legInSet: 2, dartCount: 1 },
+    ]);
+  });
+
+  it('match: Set-Wechsel erhöht setNumber, legInSet startet neu', () => {
+    const r = computeMatchState('x01', X01({ kind: 'match', sets: 3, legs: 3 }), PLAYERS, [win('a'), win('a'), d('b', 1, 1)]);
+    expect(r.segments).toEqual([
+      { setNumber: 1, legInSet: 1, dartCount: 1 },
+      { setNumber: 1, legInSet: 2, dartCount: 1 },
+      { setNumber: 2, legInSet: 1, dartCount: 1 },
+    ]);
+  });
+
+  it('Summe der dartCounts entspricht der Dart-Anzahl', () => {
+    const darts = [win('a'), win('b'), d('a', 5, 1)];
+    const r = computeMatchState('x01', X01({ kind: 'singleSet', legs: 3 }), PLAYERS, darts);
+    expect(r.segments.reduce((s, seg) => s + seg.dartCount, 0)).toBe(darts.length);
+  });
+});
+
 describe('computeMatchState — 3-Dart-Ø (x01)', () => {
   it('Ø = erzielte Punkte / Darts × 3; Nicht-Werfende haben 0', () => {
     // A wirft T20 (60) und gewinnt das Leg in 1 Dart -> Ø 180; B wirft nichts -> 0.
