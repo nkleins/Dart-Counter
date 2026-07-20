@@ -57,7 +57,7 @@ export function GameOptionsPicker({ onChange }: { onChange: (gameType: GameType,
   }, [gameType, start, inRule, outRule, cricketMode, bull, formatKind, legs, sets]);
 
   const optionsSummary =
-    gameType === 'x01' ? `${start} · In ${cap(inRule)} · Out ${cap(outRule)}` :
+    gameType === 'x01' ? `${start} · ${cap(inRule)} in · ${cap(outRule)} out` :
     `${cricketMode === 'standard' ? 'Standard' : 'Cut-Throat'} · Bull ${bull ? 'an' : 'aus'}`;
   const formatSummary =
     formatKind === 'singleSet' ? `Single Set · Best of ${legs} Legs` :
